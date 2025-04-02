@@ -1,0 +1,51 @@
+/* Custom styles */
+.card {
+  margin-bottom: 20px;
+}
+.table-responsive {
+  overflow-x: auto;
+}
+
+/* Language selector styles */
+.dropdown-item.active {
+  background-color: #0d6efd;
+  color: white;
+}
+
+/* Add a checkmark to active language */
+.dropdown-item.active::after {
+  content: " ✓";
+  font-weight: bold;
+}
+
+/* Style for language buttons in login page */
+.btn-group .btn.active {
+  background-color: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}/* Custom styles */
+.card {
+  margin-bottom: 20px;
+}
+.table-responsive {
+  overflow-x: auto;
+}
+
+/* Language selector styles */
+.dropdown-item.active {
+  background-color: #0d6efd;
+  color: white;
+}
+
+/* Add a checkmark to active language */
+.dropdown-item.active::after {
+  content: " ✓";
+  font-weight: bold;
+}
+
+/* Style for language buttons in login page */
+.btn-group .btn.active {
+  background-color: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}

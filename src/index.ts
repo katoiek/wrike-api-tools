@@ -9,6 +9,8 @@ import { initializeDatabase } from './database/init';
 import authRoutes from './routes/auth';
 import apiRoutes from './routes/api';
 import viewRoutes from './routes/views';
+import languageRoutes from './routes/language';
+import i18nConfig from './config/i18n';
 
 // Load environment variables
 dotenv.config();
@@ -88,6 +90,50 @@ app.use(session({
   }
 }));
 
+// Initialize i18n middleware
+// i18nミドルウェアを初期化
+app.use(i18nConfig.init);
+
+// Add middleware to check cookie and set locale on each request
+app.use((req, res, next) => {
+  const cookieLang = req.cookies?.lang;
+  if (cookieLang && ['en', 'ja'].includes(cookieLang) && typeof req.setLocale === 'function') {
+    req.setLocale(cookieLang);
+    console.log(`Set locale from cookie: ${cookieLang}`);
+  }
+  next();
+});
+
+// Make i18n available to all templates
+// すべてのテンプレートでi18nを利用可能にする
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // Add i18n functions to response locals for templates
+  res.locals.__ = req.__;
+  res.locals.__n = req.__n;
+
+  // Add getLocale function to templates
+  res.locals.getLocale = () => {
+    // First try to get from request
+    if (typeof req.getLocale === 'function') {
+      return req.getLocale();
+    }
+
+    // Fallback to cookie
+    const cookieLang = req.cookies?.lang;
+    if (cookieLang && ['en', 'ja'].includes(cookieLang)) {
+      return cookieLang;
+    }
+
+    // Default to Japanese
+    return 'ja';
+  };
+
+  // Log current locale for debugging
+  console.log(`Current locale: ${res.locals.getLocale()}`);
+
+  next();
+});
+
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -108,14 +154,16 @@ async function initialize() {
 // Register routes
 app.use('/auth', authRoutes);
 app.use('/api', apiRoutes);
+app.use('/language', languageRoutes);
+app.use('/language', languageRoutes);
 app.use('/', viewRoutes);
 
 // Error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).render('error', {
-    title: 'エラー',
-    message: '内部サーバーエラーが発生しました',
+    title: req.__('error.title'),
+    message: req.__('error.message'),
     error: process.env.NODE_ENV === 'development' ? err : {}
   });
 });

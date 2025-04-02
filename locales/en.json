@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "Wrike API Tools",
+    "description": "A tool for Wrike API integration"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "spaces": "Spaces",
+    "tasks": "Tasks",
+    "users": "Users",
+    "logout": "Logout"
+  },
+  "login": {
+    "title": "Wrike API Tools",
+    "connect": "Connect to your Wrike account to get started",
+    "button": "Login with Wrike"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome to Wrike API Tools",
+    "quickActions": "Quick Actions",
+    "createTask": "Create New Task",
+    "inviteUser": "Invite User"
+  },
+  "spaces": {
+    "title": "Spaces",
+    "create": "Create Space",
+    "name": "Name",
+    "description": "Description",
+    "actions": "Actions"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "create": "Create Task",
+    "name": "Name",
+    "description": "Description",
+    "status": "Status",
+    "assignees": "Assignees",
+    "dueDate": "Due Date",
+    "actions": "Actions"
+  },
+  "users": {
+    "title": "Users",
+    "invite": "Invite User",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "actions": "Actions"
+  },
+  "footer": {
+    "copyright": "© 2023 Wrike API Tools"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "search": "Search",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "language": "Language"
+  },
+  "error": {
+    "title": "Error",
+    "message": "An internal server error occurred",
+    "notFound": "Page not found",
+    "unauthorized": "Unauthorized access",
+    "backToHome": "Back to Home"
+  }
+}

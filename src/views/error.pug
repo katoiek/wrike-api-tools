@@ -10,7 +10,7 @@ block content
           p.lead #{message}
           if error && error.stack
             .alert.alert-secondary.mt-4
-              h5 エラー詳細:
+              h5 #{__('error.title')}:
               pre.mb-0= error.stack
           .mt-4
-            a.btn.btn-primary(href="/") ホームに戻る
+            a.btn.btn-primary(href="/") #{__('error.backToHome')}

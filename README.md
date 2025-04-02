@@ -21,7 +21,7 @@ Wrike API Toolsは、Wrike APIを使用してWrikeのデータにアクセスし
 1. リポジトリをクローンします：
 
 ```bash
-git clone https://github.com/yourusername/wrike-api-tools.git
+git clone https://github.com/katoiek/wrike-api-tools.git
 cd wrike-api-tools
 ```
 

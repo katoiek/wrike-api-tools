@@ -3,19 +3,19 @@ extends layout
 block content
   .row.mb-4
     .col-12
-      h1.h3 ダッシュボード
-      p.text-muted Wrike API ツールへようこそ
+      h1.h3 #{__('dashboard.title')}
+      p.text-muted #{__('dashboard.welcome')}
 
   if !user
     .row.justify-content-center
       .col-md-8
         .card.shadow-sm
           .card-body.text-center.py-5
-            h2.mb-4 Wrikeアカウントでログイン
-            p.mb-4 Wrike API Toolsを使用するには、Wrikeアカウントでログインしてください。
+            h2.mb-4 #{__('login.title')}
+            p.mb-4 #{__('login.connect')}
             a.btn.btn-primary.btn-lg(href="/auth/login")
               i.bi.bi-box-arrow-in-right.me-2
-              | Wrikeでログイン
+              | #{__('login.button')}
   else
     .row
       .col-md-4.mb-4
@@ -58,18 +58,15 @@ block content
       .col-md-8.mx-auto.mb-4
         .card.shadow-sm.h-100
           .card-header.bg-light
-            h5.mb-0 クイックアクション
+            h5.mb-0 #{__('dashboard.quickActions')}
           .card-body
             .d-grid.gap-2
               a.btn.btn-outline-primary(href="/tasks/create")
                 i.bi.bi-plus-circle.me-2
-                | 新規タスク作成
+                | #{__('dashboard.createTask')}
               a.btn.btn-outline-primary(href="/users/invite")
                 i.bi.bi-person-plus.me-2
-                | ユーザー招待
-              a.btn.btn-outline-secondary(href="https://github.com/yourusername/wrike-api-tools/blob/main/README.md" target="_blank")
-                i.bi.bi-github.me-2
-                | GitHubドキュメントを見る
+                | #{__('dashboard.inviteUser')}
 
 
 

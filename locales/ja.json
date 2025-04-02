@@ -1,0 +1,74 @@
+{
+  "app": {
+    "name": "Wrike API ツール",
+    "description": "Wrike API 連携ツール"
+  },
+  "nav": {
+    "dashboard": "ダッシュボード",
+    "spaces": "スペース",
+    "tasks": "タスク",
+    "users": "ユーザー",
+    "logout": "ログアウト"
+  },
+  "login": {
+    "title": "Wrike API ツール",
+    "connect": "Wrikeアカウントでログインしてください",
+    "button": "Wrikeでログイン"
+  },
+  "dashboard": {
+    "title": "ダッシュボード",
+    "welcome": "Wrike API ツールへようこそ",
+    "quickActions": "クイックアクション",
+    "createTask": "新規タスク作成",
+    "inviteUser": "ユーザー招待"
+  },
+  "spaces": {
+    "title": "スペース",
+    "create": "スペース作成",
+    "name": "名前",
+    "description": "説明",
+    "actions": "アクション"
+  },
+  "tasks": {
+    "title": "タスク",
+    "create": "タスク作成",
+    "name": "名前",
+    "description": "説明",
+    "status": "ステータス",
+    "assignees": "担当者",
+    "dueDate": "期限",
+    "actions": "アクション"
+  },
+  "users": {
+    "title": "ユーザー",
+    "invite": "ユーザー招待",
+    "name": "名前",
+    "email": "メールアドレス",
+    "role": "役割",
+    "actions": "アクション"
+  },
+  "footer": {
+    "copyright": "© 2023 Wrike API ツール"
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "view": "表示",
+    "search": "検索",
+    "loading": "読み込み中...",
+    "noData": "データがありません",
+    "error": "エラー",
+    "success": "成功",
+    "confirm": "確認",
+    "language": "言語"
+  },
+  "error": {
+    "title": "エラー",
+    "message": "内部サーバーエラーが発生しました",
+    "notFound": "ページが見つかりません",
+    "unauthorized": "アクセス権限がありません",
+    "backToHome": "ホームに戻る"
+  }
+}
