@@ -1,0 +1,88 @@
+extends layout
+
+block content
+  .row.mb-4
+    .col-12
+      h1.h3 ダッシュボード
+      p.text-muted Wrike API ツールへようこそ
+
+  if !user
+    .row.justify-content-center
+      .col-md-8
+        .card.shadow-sm
+          .card-body.text-center.py-5
+            h2.mb-4 Wrikeアカウントでログイン
+            p.mb-4 Wrike API Toolsを使用するには、Wrikeアカウントでログインしてください。
+            a.btn.btn-primary.btn-lg(href="/auth/login")
+              i.bi.bi-box-arrow-in-right.me-2
+              | Wrikeでログイン
+  else
+    .row
+      .col-md-4.mb-4
+        .card.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-start
+              div
+                h5.card-title スペース
+                h2.display-6 #{stats && stats.spaces ? stats.spaces : 0}
+              .icon-bg.bg-primary.text-white
+                i.bi.bi-building.fs-1
+          .card-footer.bg-white.border-0
+            a.btn.btn-sm.btn-outline-primary(href="/spaces") 詳細を見る
+
+      .col-md-4.mb-4
+        .card.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-start
+              div
+                h5.card-title タスク
+                h2.display-6 #{stats && stats.tasks ? stats.tasks : 0}
+              .icon-bg.bg-success.text-white
+                i.bi.bi-check2-square.fs-1
+          .card-footer.bg-white.border-0
+            a.btn.btn-sm.btn-outline-primary(href="/tasks") 詳細を見る
+
+      .col-md-4.mb-4
+        .card.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-start
+              div
+                h5.card-title ユーザー
+                h2.display-6 #{stats && stats.users ? stats.users : 0}
+              .icon-bg.bg-info.text-white
+                i.bi.bi-people.fs-1
+          .card-footer.bg-white.border-0
+            a.btn.btn-sm.btn-outline-primary(href="/users") 詳細を見る
+
+    .row.mb-4
+      .col-md-8.mx-auto.mb-4
+        .card.shadow-sm.h-100
+          .card-header.bg-light
+            h5.mb-0 クイックアクション
+          .card-body
+            .d-grid.gap-2
+              a.btn.btn-outline-primary(href="/tasks/create")
+                i.bi.bi-plus-circle.me-2
+                | 新規タスク作成
+              a.btn.btn-outline-primary(href="/users/invite")
+                i.bi.bi-person-plus.me-2
+                | ユーザー招待
+              a.btn.btn-outline-secondary(href="https://github.com/yourusername/wrike-api-tools/blob/main/README.md" target="_blank")
+                i.bi.bi-github.me-2
+                | GitHubドキュメントを見る
+
+
+
+
+block scripts
+  style.
+    .icon-bg {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+

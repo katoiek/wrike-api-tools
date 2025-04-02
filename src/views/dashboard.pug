@@ -1,0 +1,61 @@
+extends layout
+
+block content
+  h1.mb-4 Dashboard
+
+  .row
+    .col-md-4.mb-4
+      .card.shadow-sm
+        .card-body.text-center
+          i.bi.bi-grid-3x3-gap.fs-1.text-primary.mb-3
+          h5.card-title Spaces
+          p.card-text View and manage spaces
+          a.btn.btn-outline-primary(href="/spaces") View Spaces
+
+    .col-md-4.mb-4
+      .card.shadow-sm
+        .card-body.text-center
+          i.bi.bi-check2-square.fs-1.text-info.mb-3
+          h5.card-title Tasks
+          p.card-text View and manage tasks
+          a.btn.btn-outline-info(href="/tasks") View Tasks
+
+    .col-md-4.mb-4
+      .card.shadow-sm
+        .card-body.text-center
+          i.bi.bi-people.fs-1.text-warning.mb-3
+          h5.card-title Users
+          p.card-text View and manage users
+          a.btn.btn-outline-warning(href="/users") View Users
+
+  .row.mt-4
+    .col-md-6.mb-4
+      .card.shadow-sm
+        .card-header.bg-light
+          h5.mb-0 Quick Actions
+        .list-group.list-group-flush
+          a.list-group-item.list-group-item-action(href="/users/import")
+            i.bi.bi-upload.me-2
+            | Import Users from CSV
+          a.list-group-item.list-group-item-action(href="/settings")
+            i.bi.bi-gear.me-2
+            | Configure Settings
+
+    .col-md-6.mb-4
+      .card.shadow-sm
+        .card-header.bg-light
+          h5.mb-0 Account Information
+        .card-body
+          if user
+            p
+              strong Name:
+              | #{user.firstName} #{user.lastName}
+            p
+              strong Email:
+              | #{user.profiles && user.profiles[0] ? user.profiles[0].email : 'N/A'}
+            p
+              strong Role:
+              | #{user.profiles && user.profiles[0] ? user.profiles[0].role : 'N/A'}
+            p
+              strong Timezone:
+              | #{user.timezone || 'N/A'}

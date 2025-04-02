@@ -1,0 +1,74 @@
+extends layout
+
+block content
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1.h3= folder.title
+    .btn-group
+      a.btn.btn-outline-primary(href=`/folders/${folder.id}/tasks`)
+        i.bi.bi-list-task.me-1
+        | タスク一覧
+      - const wrikeUrl = `https://www.wrike.com/open.htm?id=${folder.id}`
+      a.btn.btn-outline-secondary(href=wrikeUrl, target="_blank")
+        i.bi.bi-box-arrow-up-right.me-1
+        | Wrikeで開く
+
+  .row
+    .col-md-6.mb-4
+      .card.shadow-sm
+        .card-header.bg-light
+          h5.mb-0 フォルダ情報
+        .card-body
+          .mb-3
+            strong ID:
+            .text-muted= folder.id
+          .mb-3
+            strong タイトル:
+            .text-muted= folder.title
+          .mb-3
+            strong スコープ:
+            .text-muted= folder.scope || '未設定'
+          .mb-3
+            strong 作成日:
+            .text-muted= folder.createdDate
+          .mb-3
+            strong 更新日:
+            .text-muted= folder.updatedDate
+          if folder.description
+            .mb-3
+              strong 説明:
+              .text-muted= folder.description
+
+    .col-md-6.mb-4
+      .card.shadow-sm
+        .card-header.bg-light
+          h5.mb-0 最近のタスク
+          small.text-muted.ms-2 最大5件
+        .card-body.p-0
+          .list-group.list-group-flush
+            if tasks && tasks.length > 0
+              each task in tasks.slice(0, 5)
+                - const taskWrikeUrl = `https://www.wrike.com/open.htm?id=${task.id}`
+                a.list-group-item.list-group-item-action(href=taskWrikeUrl, target="_blank")
+                  .d-flex.w-100.justify-content-between
+                    h6.mb-1= task.title
+                    small= task.status
+                  p.mb-1.text-muted= task.description ? task.description.substring(0, 100) + (task.description.length > 100 ? '...' : '') : ''
+                  small.text-muted 更新日: #{task.updatedDate}
+            else
+              .list-group-item.text-center.py-4 タスクがありません
+
+  if folder.childIds && folder.childIds.length > 0
+    .card.shadow-sm.mb-4
+      .card-header.bg-light
+        h5.mb-0 サブフォルダ
+      .card-body.p-0
+        .list-group.list-group-flush
+          each childId in folder.childIds
+            a.list-group-item.list-group-item-action(href=`/folders/${childId}`)
+              i.bi.bi-folder.text-warning.me-2
+              | サブフォルダ #{childId}
+
+  .mt-4
+    a.btn.btn-secondary(href="/folders")
+      i.bi.bi-arrow-left.me-1
+      | フォルダ一覧に戻る

@@ -1,0 +1,150 @@
+extends layout
+
+block content
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1 Spaces
+    .input-group.w-auto
+      input#searchInput.form-control(type="text", placeholder="Search spaces...")
+      button.btn.btn-outline-secondary(type="button")
+        i.bi.bi-search
+
+  .card.shadow-sm
+    .card-body
+      .table-responsive
+        table.table.table-hover#spacesTable
+          thead
+            tr
+              th(onclick="sortTable(0)")
+                | Name
+                i.bi.bi-arrow-down-up
+              th(onclick="sortTable(1)")
+                | Access Type
+                i.bi.bi-arrow-down-up
+              th Actions
+          tbody
+            if spaces && spaces.length
+              each space in spaces
+                tr
+                  td= space.title
+                  td= space.accessType
+                  td
+                    if space.permalink
+                      a.btn.btn-sm.btn-outline-secondary(href=space.permalink, target="_blank")
+                        i.bi.bi-box-arrow-up-right
+                        span.ms-1 Wrikeで開く
+                    else
+                      - const wrikeUrl = `https://www.wrike.com/open.htm?id=${space.id}`
+                      a.btn.btn-sm.btn-outline-secondary(href=wrikeUrl, target="_blank")
+                        i.bi.bi-box-arrow-up-right
+                        span.ms-1 Wrikeで開く
+            else
+              tr
+                td.text-center(colspan="3") No spaces found
+
+      if nextPageToken
+        .d-flex.justify-content-between.align-items-center.mt-3
+          .text-muted Showing up to 100 spaces per page
+          nav(aria-label="Pagination")
+            ul.pagination
+              if currentPage > 1
+                li.page-item
+                  a.page-link(href=`/spaces?page=${currentPage - 1}`) Previous
+
+              - var startPage = Math.max(1, currentPage - 2)
+              - var endPage = Math.min(startPage + 4, totalPages)
+
+              if startPage > 1
+                li.page-item
+                  a.page-link(href="/spaces?page=1") 1
+                if startPage > 2
+                  li.page-item.disabled
+                    span.page-link ...
+
+              - for (var i = startPage; i <= endPage; i++)
+                li.page-item(class=i === currentPage ? 'active' : '')
+                  a.page-link(href=`/spaces?page=${i}`)= i
+
+              if endPage < totalPages
+                if endPage < totalPages - 1
+                  li.page-item.disabled
+                    span.page-link ...
+                li.page-item
+                  a.page-link(href=`/spaces?page=${totalPages}`)= totalPages
+
+              if nextPageToken
+                li.page-item
+                  a.page-link(href=`/spaces?page=${currentPage + 1}`) Next
+
+              if endPage < totalPages
+                if endPage < totalPages - 1
+                  li.page-item.disabled
+                    span.page-link ...
+                li.page-item
+                  a.page-link(href=`/spaces?page=${totalPages}`)= totalPages
+
+              if nextPageToken
+                li.page-item
+                  a.page-link(href=`/spaces?page=${currentPage + 1}`) Next
+
+block scripts
+  script.
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+      const input = this.value.toLowerCase();
+      const table = document.getElementById('spacesTable');
+      const rows = table.getElementsByTagName('tr');
+
+      for (let i = 1; i < rows.length; i++) {
+        const nameCell = rows[i].getElementsByTagName('td')[0];
+        if (nameCell) {
+          const name = nameCell.textContent || nameCell.innerText;
+          if (name.toLowerCase().indexOf(input) > -1) {
+            rows[i].style.display = '';
+          } else {
+            rows[i].style.display = 'none';
+          }
+        }
+      }
+    });
+
+    // Sorting functionality
+    function sortTable(n) {
+      let table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+      table = document.getElementById('spacesTable');
+      switching = true;
+      dir = 'asc';
+
+      while (switching) {
+        switching = false;
+        rows = table.rows;
+
+        for (i = 1; i < (rows.length - 1); i++) {
+          shouldSwitch = false;
+          x = rows[i].getElementsByTagName('td')[n];
+          y = rows[i + 1].getElementsByTagName('td')[n];
+
+          if (dir === 'asc') {
+            if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          } else if (dir === 'desc') {
+            if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          }
+        }
+
+        if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+          switchcount++;
+        } else {
+          if (switchcount === 0 && dir === 'asc') {
+            dir = 'desc';
+            switching = true;
+          }
+        }
+      }
+    }

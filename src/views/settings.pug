@@ -1,0 +1,250 @@
+extends layout
+
+block content
+  h1.mb-4 設定管理
+
+  .row
+    .col-md-8
+      .card.shadow-sm.mb-4
+        .card-header.bg-light.d-flex.justify-content-between.align-items-center
+          h5.mb-0 現在の設定
+          .input-group.w-50
+            input#settingsSearch.form-control.form-control-sm(type="text", placeholder="設定を検索...")
+            button.btn.btn-sm.btn-outline-secondary(type="button")
+              i.bi.bi-search
+        .card-body
+          if Object.keys(settings).length === 0
+            p.text-muted 設定はまだありません。
+          else
+            .table-responsive
+              table.table.table-hover#settingsTable
+                thead
+                  tr
+                    th(onclick="sortSettingsTable(0)")
+                      | 設定キー
+                      i.bi.bi-arrow-down-up
+                    th 設定値
+                    th(onclick="sortSettingsTable(2)")
+                      | 暗号化
+                      i.bi.bi-arrow-down-up
+                    th アクション
+                tbody
+                  each setting in settingsWithMetadata
+                    tr
+                      td= setting.key
+                      td
+                        if setting.encrypted
+                          span.text-muted [暗号化済み]
+                          button.btn.btn-sm.btn-link.ms-2.toggle-password(type="button", data-key=setting.key)
+                            i.bi.bi-eye
+                        else
+                          = setting.value
+                      td
+                        if setting.encrypted
+                          i.bi.bi-lock-fill.text-success(title="暗号化済み")
+                        else
+                          i.bi.bi-unlock.text-muted(title="暗号化なし")
+                      td
+                        .btn-group
+                          button.btn.btn-sm.btn-outline-primary.edit-setting(type="button", data-key=setting.key, data-encrypted=setting.encrypted)
+                            i.bi.bi-pencil
+                          form.d-inline(action="/settings/delete", method="post", onsubmit="return confirm('この設定を削除してもよろしいですか？');")
+                            input(type="hidden", name="key", value=setting.key)
+                            button.btn.btn-sm.btn-outline-danger(type="submit")
+                              i.bi.bi-trash
+
+    .col-md-4
+      .card.shadow-sm
+        .card-header.bg-light
+          h5.mb-0#settingFormTitle 設定の追加
+        .card-body
+          form#settingForm(action="/settings", method="post")
+            input#settingId(type="hidden", name="id", value="")
+
+            .mb-3
+              label.form-label(for="key") 設定キー
+              input#key.form-control(type="text", name="key", required)
+
+            .mb-3
+              label.form-label(for="value") 設定値
+              input#value.form-control(type="text", name="value", required)
+
+            .mb-3.form-check
+              input#encrypted.form-check-input(type="checkbox", name="encrypted", value="true")
+              label.form-check-label(for="encrypted") 値を暗号化する
+
+            .d-flex.justify-content-between
+              button.btn.btn-primary(type="submit") 保存
+              button#cancelEdit.btn.btn-outline-secondary(type="button", style="display: none;") キャンセル
+
+      .card.shadow-sm.mt-4
+        .card-header.bg-light
+          h5.mb-0 Wrike API 設定
+        .card-body
+          form(action="/settings/api", method="post")
+            .mb-3
+              label.form-label(for="clientId") クライアントID
+              input#clientId.form-control(type="text", name="clientId", value=wrikeSettings.clientId)
+              small.form-text.text-muted Wrike開発者ポータルで取得したクライアントID
+
+            .mb-3
+              label.form-label(for="clientSecret") クライアントシークレット
+              input#clientSecret.form-control(type="text", name="clientSecret", value=wrikeSettings.clientSecret)
+              small.form-text.text-muted Wrike開発者ポータルで取得したクライアントシークレット
+
+            .mb-3
+              label.form-label(for="redirectUri") リダイレクトURI
+              input#redirectUri.form-control(type="text", name="redirectUri", value=wrikeSettings.redirectUri)
+              small.form-text.text-muted OAuth認証後のリダイレクト先URL
+
+            button.btn.btn-primary.mt-2(type="submit") API設定を保存
+
+block scripts
+  script.
+    // 設定キーに基づいて暗号化チェックボックスの初期状態を設定
+    document.getElementById('key').addEventListener('input', function() {
+      const key = this.value.toLowerCase();
+      const shouldEncrypt = key.includes('token') || key.includes('secret') || key.includes('password') || key.includes('key');
+      document.getElementById('encrypted').checked = shouldEncrypt;
+    });
+
+    // 設定の編集
+    document.querySelectorAll('.edit-setting').forEach(button => {
+      button.addEventListener('click', async function() {
+        const key = this.getAttribute('data-key');
+        const encrypted = this.getAttribute('data-encrypted') === 'true';
+
+        // フォームにデータを設定
+        document.getElementById('key').value = key;
+        document.getElementById('key').readOnly = true;
+        document.getElementById('encrypted').checked = encrypted;
+        document.getElementById('settingFormTitle').textContent = '設定の編集';
+        document.getElementById('cancelEdit').style.display = 'block';
+
+        // 暗号化されていない場合は値を設定
+        const row = this.closest('tr');
+        const valueCell = row.cells[1];
+        if (!encrypted) {
+          document.getElementById('value').value = valueCell.textContent.trim();
+        } else {
+          document.getElementById('value').value = '';
+          document.getElementById('value').placeholder = '新しい値を入力してください（空白の場合は変更なし）';
+        }
+
+        // スクロールしてフォームを表示
+        document.getElementById('settingForm').scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+    // 編集キャンセル
+    document.getElementById('cancelEdit').addEventListener('click', function() {
+      document.getElementById('settingForm').reset();
+      document.getElementById('key').readOnly = false;
+      document.getElementById('settingFormTitle').textContent = '設定の追加';
+      this.style.display = 'none';
+    });
+
+    // 暗号化された値の表示/非表示
+    document.querySelectorAll('.toggle-password').forEach(button => {
+      button.addEventListener('click', async function() {
+        const key = this.getAttribute('data-key');
+        const icon = this.querySelector('i');
+        const valueCell = this.closest('td');
+
+        if (icon.classList.contains('bi-eye')) {
+          // 値を表示
+          try {
+            const response = await fetch(`/api/settings/${key}?decrypt=true`);
+            if (response.ok) {
+              const data = await response.json();
+              const span = document.createElement('span');
+              span.className = 'text-danger';
+              span.textContent = data.value;
+              valueCell.innerHTML = '';
+              valueCell.appendChild(span);
+              icon.classList.remove('bi-eye');
+              icon.classList.add('bi-eye-slash');
+            }
+          } catch (error) {
+            console.error('Error fetching decrypted value:', error);
+          }
+        } else {
+          // 値を隠す
+          valueCell.innerHTML = '<span class="text-muted">[暗号化済み]</span>';
+          const button = document.createElement('button');
+          button.className = 'btn btn-sm btn-link ms-2 toggle-password';
+          button.setAttribute('type', 'button');
+          button.setAttribute('data-key', key);
+          button.innerHTML = '<i class="bi bi-eye"></i>';
+          valueCell.appendChild(button);
+
+          // イベントリスナーを再設定
+          button.addEventListener('click', arguments.callee);
+        }
+      });
+    });
+
+    // 設定テーブルの検索機能
+    document.getElementById('settingsSearch').addEventListener('keyup', function() {
+      const input = this.value.toLowerCase();
+      const table = document.getElementById('settingsTable');
+      const rows = table.getElementsByTagName('tr');
+
+      for (let i = 1; i < rows.length; i++) {
+        const keyCell = rows[i].getElementsByTagName('td')[0];
+        const valueCell = rows[i].getElementsByTagName('td')[1];
+
+        if (keyCell && valueCell) {
+          const key = keyCell.textContent || keyCell.innerText;
+          const value = valueCell.textContent || valueCell.innerText;
+
+          if (key.toLowerCase().indexOf(input) > -1 || value.toLowerCase().indexOf(input) > -1) {
+            rows[i].style.display = '';
+          } else {
+            rows[i].style.display = 'none';
+          }
+        }
+      }
+    });
+
+    // 設定テーブルのソート機能
+    function sortSettingsTable(n) {
+      let table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+      table = document.getElementById('settingsTable');
+      switching = true;
+      dir = 'asc';
+
+      while (switching) {
+        switching = false;
+        rows = table.rows;
+
+        for (i = 1; i < (rows.length - 1); i++) {
+          shouldSwitch = false;
+          x = rows[i].getElementsByTagName('td')[n];
+          y = rows[i + 1].getElementsByTagName('td')[n];
+
+          if (dir === 'asc') {
+            if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          } else if (dir === 'desc') {
+            if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          }
+        }
+
+        if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+          switchcount++;
+        } else {
+          if (switchcount === 0 && dir === 'asc') {
+            dir = 'desc';
+            switching = true;
+          }
+        }
+      }
+    }

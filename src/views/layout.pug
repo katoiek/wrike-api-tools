@@ -1,0 +1,44 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title #{title} - Wrike API Tools
+    link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css")
+    link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css")
+    link(rel="stylesheet", href="/css/styles.css")
+  body
+    nav.navbar.navbar-expand-lg.navbar-dark.bg-dark
+      .container
+        a.navbar-brand(href="/") Wrike API Tools
+        button.navbar-toggler(type="button", data-bs-toggle="collapse", data-bs-target="#navbarNav")
+          span.navbar-toggler-icon
+        #navbarNav.collapse.navbar-collapse
+          if user
+            ul.navbar-nav.me-auto
+              li.nav-item
+                a.nav-link(href="/") Dashboard
+              li.nav-item
+                a.nav-link(href="/spaces") Spaces
+              li.nav-item
+                a.nav-link(href="/tasks") Tasks
+              li.nav-item
+                a.nav-link(href="/users") Users
+            ul.navbar-nav
+              li.nav-item.dropdown
+                a.nav-link.dropdown-toggle(href="#", role="button", data-bs-toggle="dropdown")
+                  | #{user.firstName} #{user.lastName}
+                ul.dropdown-menu.dropdown-menu-end
+                  li
+                    a.dropdown-item(href="/auth/logout") Logout
+
+    main.container.my-4
+      block content
+
+    footer.bg-light.py-3.mt-5
+      .container.text-center
+        p.text-muted &copy; 2023 Wrike API Tools
+
+    script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js")
+    script(src="/js/main.js")
+    block scripts

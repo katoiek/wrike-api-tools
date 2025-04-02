@@ -1,0 +1,188 @@
+extends layout
+
+block content
+  .row.mb-4
+    .col-md-6
+      h1.h3 フォルダ一覧
+    .col-md-6.text-end
+      .input-group
+        input.form-control#folderSearch(type="text", placeholder="フォルダを検索...")
+        button.btn.btn-primary(type="button")
+          i.bi.bi-search
+
+  .card.shadow-sm
+    .card-header.bg-light
+      .row
+        .col-md-6
+          h5.mb-0 フォルダ
+        .col-md-6.text-end
+          select.form-select.form-select-sm#folderSort(style="width: auto; display: inline-block;")
+            option(value="title") タイトル順
+            option(value="createdDate") 作成日順
+            option(value="updatedDate") 更新日順
+
+    .card-body.p-0
+      .table-responsive
+        table.table.table-hover.mb-0
+          thead.table-light
+            tr
+              th タイトル
+              th スコープ
+              th 作成日
+              th 更新日
+              th アクション
+          tbody#folderList
+            if folders && folders.length > 0
+              each folder in folders
+                tr
+                  td
+                    if folder.childIds && folder.childIds.length > 0
+                      i.bi.bi-folder-fill.text-warning.me-2
+                    else
+                      i.bi.bi-folder.text-warning.me-2
+                    a(href=`/folders/${folder.id}`)= folder.title
+                  td
+                    if folder.scope
+                      span.badge.bg-info= folder.scope
+                    else
+                      span.text-muted 未設定
+                  td.folder-created-date(data-date=folder.createdDate)= folder.createdDate
+                  td.folder-updated-date(data-date=folder.updatedDate)= folder.updatedDate
+                  td
+                    .btn-group.btn-group-sm
+                      a.btn.btn-outline-primary(href=`/folders/${folder.id}`)
+                        i.bi.bi-folder
+                        span.ms-1 詳細
+                      a.btn.btn-outline-info(href=`/folders/${folder.id}/tasks`)
+                        i.bi.bi-list-task
+                        span.ms-1 タスク
+                      - const wrikeUrl = `https://www.wrike.com/open.htm?id=${folder.id}`
+                      a.btn.btn-outline-secondary(href=wrikeUrl, target="_blank")
+                        i.bi.bi-box-arrow-up-right
+                        span.ms-1 Wrikeで開く
+            else
+              tr
+                td.text-center.py-4(colspan="5") フォルダがありません
+
+          if nextPageToken
+        .d-flex.justify-content-between.align-items-center.mt-3
+          .text-muted 1ページあたり最大100件のフォルダを表示
+          nav(aria-label="ページネーション")
+            ul.pagination
+              if currentPage > 1
+                li.page-item
+                  a.page-link(href=`/folders?page=${currentPage - 1}`) 前へ
+
+              - var startPage = Math.max(1, currentPage - 2)
+              - var endPage = Math.min(startPage + 4, totalPages)
+
+              if startPage > 1
+                li.page-item
+                  a.page-link(href="/folders?page=1") 1
+                if startPage > 2
+                  li.page-item.disabled
+                    span.page-link ...
+
+              - for (var i = startPage; i <= endPage; i++)
+                li.page-item(class=i === currentPage ? 'active' : '')
+                  a.page-link(href=`/folders?page=${i}`)= i
+
+              if endPage < totalPages
+                if endPage < totalPages - 1
+                  li.page-item.disabled
+                    span.page-link ...
+                li.page-item
+                  a.page-link(href=`/folders?page=${totalPages}`)= totalPages
+
+              if nextPageToken
+                li.page-item
+                  a.page-link(href=`/folders?page=${currentPage + 1}`) 次へ
+
+              - for (var i = startPage; i <= endPage; i++)
+                li.page-item(class=i === currentPage ? 'active' : '')
+                  a.page-link(href=`/folders?page=${i}`)= i
+
+              if endPage < totalPages
+                if endPage < totalPages - 1
+                  li.page-item.disabled
+                    span.page-link ...
+                li.page-item
+                  a.page-link(href=`/folders?page=${totalPages}`)= totalPages
+
+              if nextPageToken
+                li.page-item
+                  a.page-link(href=`/folders?page=${currentPage + 1}`) 次へ
+
+  if error
+    .alert.alert-danger.mt-3= error
+
+block scripts
+  script.
+    // フォルダ検索機能
+    document.addEventListener('DOMContentLoaded', function() {
+      // 日付のフォーマット
+      document.querySelectorAll('.folder-created-date, .folder-updated-date').forEach(function(el) {
+        const dateStr = el.getAttribute('data-date');
+        if (dateStr) {
+          try {
+            const date = new Date(dateStr);
+            el.textContent = date.toLocaleDateString('ja-JP');
+          } catch (e) {
+            el.textContent = '未設定';
+          }
+        } else {
+          el.textContent = '未設定';
+        }
+      });
+
+      // フォルダ検索機能
+      document.getElementById('folderSearch').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll('#folderList tr');
+
+        rows.forEach(row => {
+          const title = row.querySelector('td:first-child').textContent.toLowerCase();
+          if (title.includes(searchTerm)) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      });
+
+      // フォルダソート機能
+      document.getElementById('folderSort').addEventListener('change', function(e) {
+        const sortBy = e.target.value;
+        const tbody = document.getElementById('folderList');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        rows.sort((a, b) => {
+          let aValue, bValue;
+
+          switch(sortBy) {
+            case 'title':
+              aValue = a.querySelector('td:nth-child(1)').textContent;
+              bValue = b.querySelector('td:nth-child(1)').textContent;
+              return aValue.localeCompare(bValue);
+
+            case 'createdDate':
+              aValue = a.querySelector('td:nth-child(3)').getAttribute('data-date');
+              bValue = b.querySelector('td:nth-child(3)').getAttribute('data-date');
+              return new Date(aValue || '1970-01-01') - new Date(bValue || '1970-01-01');
+
+            case 'updatedDate':
+              aValue = a.querySelector('td:nth-child(4)').getAttribute('data-date');
+              bValue = b.querySelector('td:nth-child(4)').getAttribute('data-date');
+              return new Date(aValue || '1970-01-01') - new Date(bValue || '1970-01-01');
+
+            default:
+              return 0;
+          }
+        });
+
+        // テーブルを再構築
+        rows.forEach(row => tbody.appendChild(row));
+      });
+    });
+
+

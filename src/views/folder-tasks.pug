@@ -1,0 +1,106 @@
+extends layout
+
+block content
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1.h3
+      | #{folder.title} のタスク
+    .btn-group
+      a.btn.btn-outline-primary(href=`/folders/${folder.id}`)
+        i.bi.bi-folder.me-1
+        | フォルダ詳細
+      - const wrikeUrl = `https://www.wrike.com/open.htm?id=${folder.id}`
+      a.btn.btn-outline-secondary(href=wrikeUrl, target="_blank")
+        i.bi.bi-box-arrow-up-right.me-1
+        | Wrikeで開く
+
+  .card.shadow-sm
+    .card-header.bg-light
+      .row
+        .col-md-6
+          h5.mb-0 タスク一覧
+        .col-md-6.text-end
+          .input-group.w-auto.float-end
+            input#taskSearch.form-control.form-control-sm(type="text", placeholder="タスクを検索...")
+            button.btn.btn-sm.btn-outline-secondary(type="button")
+              i.bi.bi-search
+
+    .card-body.p-0
+      .table-responsive
+        table.table.table-hover.mb-0
+          thead.table-light
+            tr
+              th タイトル
+              th ステータス
+              th 担当者
+              th 期限
+              th 更新日
+              th アクション
+          tbody#taskList
+            if tasks && tasks.length > 0
+              each task in tasks
+                tr
+                  td
+                    - const taskWrikeUrl = `https://www.wrike.com/open.htm?id=${task.id}`
+                    a(href=taskWrikeUrl, target="_blank")= task.title
+                  td
+                    span.badge(class=task.status === 'Completed' ? 'bg-success' : 'bg-primary')= task.status
+                  td
+                    if task.responsibleIds && task.responsibleIds.length > 0
+                      each responsibleId in task.responsibleIds
+                        span.badge.bg-info.me-1= responsibleId
+                    else
+                      span.text-muted 未割り当て
+                  td
+                    if task.dates && task.dates.due
+                      span= task.dates.due
+                    else
+                      span.text-muted 未設定
+                  td= task.updatedDate
+                  td
+                    .btn-group.btn-group-sm
+                      - const taskActionWrikeUrl = `https://www.wrike.com/open.htm?id=${task.id}`
+                      a.btn.btn-outline-primary(href=taskActionWrikeUrl, target="_blank")
+                        i.bi.bi-box-arrow-up-right
+                        span.ms-1 Wrikeで開く
+            else
+              tr
+                td.text-center.py-4(colspan="6") タスクがありません
+
+      if nextPageToken
+        .d-flex.justify-content-between.align-items-center.mt-3.p-3
+          .text-muted 1ページあたり最大1000件のタスクを表示
+          nav(aria-label="ページネーション")
+            ul.pagination
+              if currentPage > 1
+                li.page-item
+                  a.page-link(href=`/folders/${folder.id}/tasks?page=${currentPage - 1}`) 前へ
+
+              - var startPage = Math.max(1, currentPage - 2)
+              - var endPage = Math.min(startPage + 4, totalPages)
+
+              if startPage > 1
+                li.page-item
+                  a.page-link(href=`/folders/${folder.id}/tasks?page=1`) 1
+                if startPage > 2
+                  li.page-item.disabled
+                    span.page-link ...
+
+              - for (var i = startPage; i <= endPage; i++)
+                li.page-item(class=i === currentPage ? 'active' : '')
+                  a.page-link(href=`/folders/${folder.id}/tasks?page=${i}`)= i
+
+              if endPage < totalPages
+                if endPage < totalPages - 1
+                  li.page-item.disabled
+                    span.page-link ...
+                li.page-item
+                  a.page-link(href=`/folders/${folder.id}/tasks?page=${totalPages}`)= totalPages
+
+              if nextPageToken
+                li.page-item
+                  a.page-link(href=`/folders/${folder.id}/tasks?page=${currentPage + 1}`) 次へ
+
+  .mt-4
+    a.btn.btn-secondary(href="/folders")
+      i.bi.bi-arrow-left.me-1
+      | フォルダ一覧に戻る

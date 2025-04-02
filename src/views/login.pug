@@ -1,0 +1,12 @@
+extends layout
+
+block content
+  .row.justify-content-center
+    .col-md-6
+      .card.shadow
+        .card-body.text-center.p-5
+          h1.mb-4 Wrike API Integration
+          p.mb-4 Connect to your Wrike account to get started
+          a.btn.btn-primary.btn-lg(href="/auth/login")
+            i.bi.bi-box-arrow-in-right.me-2
+            | Login with Wrike

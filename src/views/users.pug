@@ -1,0 +1,149 @@
+extends layout
+
+block content
+  .row.mb-4
+    .col-md-6
+      h1.h3 ユーザー一覧
+    .col-md-6.text-end
+      .btn-group
+        button.btn.btn-primary(type="button", data-bs-toggle="modal", data-bs-target="#importUsersModal")
+          i.bi.bi-upload.me-1
+          | CSVインポート
+        a.btn.btn-outline-primary(href="/users/export")
+          i.bi.bi-download.me-1
+          | CSVエクスポート
+
+  .row.mb-3
+    .col-md-12
+      .input-group
+        input.form-control#userSearch(type="text", placeholder="ユーザーを検索...")
+        button.btn.btn-primary(type="button")
+          i.bi.bi-search
+
+  .card.shadow-sm
+    .card-header.bg-light
+      .row
+        .col-md-6
+          h5.mb-0 ユーザー
+        .col-md-6.text-end
+          select.form-select.form-select-sm#userSort(style="width: auto; display: inline-block;")
+            option(value="name") 名前順
+            option(value="email") メール順
+            option(value="role") 役割順
+
+    .card-body.p-0
+      .table-responsive
+        table.table.table-hover.mb-0
+          thead.table-light
+            tr
+              th 名前
+              th メールアドレス
+              th 役割
+              th ステータス
+              th アクション
+          tbody#userList
+            if users && users.length > 0
+              each user in users
+                tr
+                  td
+                    .d-flex.align-items-center
+                      if user.avatarUrl
+                        img.rounded-circle.me-2(src=user.avatarUrl, width="32", height="32", alt=user.firstName)
+                      else
+                        .rounded-circle.bg-secondary.text-white.d-flex.align-items-center.justify-content-center.me-2(style="width: 32px; height: 32px;")
+                          | #{user.firstName.charAt(0)}#{user.lastName.charAt(0)}
+                      span #{user.firstName} #{user.lastName}
+                  td= user.email || '未設定'
+                  td
+                    span.badge.user-role(data-role=user.role, class=`bg-${user.role === 'Admin' ? 'danger' : (user.role === 'User' ? 'primary' : (user.role === 'Collaborator' ? 'success' : (user.role === 'External' ? 'warning' : 'secondary')))}`)= user.role || '未設定'
+                  td
+                    if user.deleted
+                      span.badge.bg-danger 削除済み
+                    else
+                      span.badge.bg-success アクティブ
+                  td
+                    .btn-group.btn-group-sm
+                      a.btn.btn-outline-primary(href=`/users/${user.id}`)
+                        i.bi.bi-eye
+            else
+              tr
+                td.text-center.py-4(colspan="5") ユーザーがありません
+
+  if error
+    .alert.alert-danger.mt-3= error
+
+  // CSVインポートモーダル
+  #importUsersModal.modal.fade(tabindex="-1")
+    .modal-dialog
+      .modal-content
+        .modal-header
+          h5.modal-title ユーザーCSVインポート
+          button.btn-close(type="button", data-bs-dismiss="modal")
+        .modal-body
+          form(action="/users/import", method="post", enctype="multipart/form-data")
+            .mb-3
+              label.form-label(for="csvFile") CSVファイル
+              input.form-control#csvFile(type="file", name="csvFile", accept=".csv", required)
+            .mb-3
+              p.mb-2 CSVフォーマット:
+              pre.bg-light.p-2.rounded
+                | firstName,lastName,email,role
+                | 山田,太郎,yamada@example.com,User
+                | 鈴木,花子,suzuki@example.com,Admin
+            button.btn.btn-primary(type="submit") インポート
+        .modal-footer
+          button.btn.btn-secondary(type="button", data-bs-dismiss="modal") 閉じる
+
+block scripts
+  script.
+    // ユーザー検索機能
+    document.getElementById('userSearch').addEventListener('input', function(e) {
+      const searchTerm = e.target.value.toLowerCase();
+      const rows = document.querySelectorAll('#userList tr');
+
+      rows.forEach(row => {
+        const name = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+        const email = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        if (name.includes(searchTerm) || email.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    });
+
+    // ユーザーソート機能
+    document.getElementById('userSort').addEventListener('change', function(e) {
+      const sortBy = e.target.value;
+      const tbody = document.getElementById('userList');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+
+      rows.sort((a, b) => {
+        let aValue, bValue;
+
+        switch(sortBy) {
+          case 'name':
+            aValue = a.querySelector('td:nth-child(1)').textContent;
+            bValue = b.querySelector('td:nth-child(1)').textContent;
+            return aValue.localeCompare(bValue);
+
+          case 'email':
+            aValue = a.querySelector('td:nth-child(2)').textContent;
+            bValue = b.querySelector('td:nth-child(2)').textContent;
+            return aValue.localeCompare(bValue);
+
+          case 'role':
+            aValue = a.querySelector('td:nth-child(3)').textContent;
+            bValue = b.querySelector('td:nth-child(3)').textContent;
+            return aValue.localeCompare(bValue);
+
+          default:
+            return 0;
+        }
+      });
+
+      // テーブルを再構築
+      rows.forEach(row => tbody.appendChild(row));
+    });
+
+

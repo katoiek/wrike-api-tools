@@ -1,0 +1,16 @@
+extends layout
+
+block content
+  .row.justify-content-center
+    .col-md-8
+      .card.shadow-sm
+        .card-header.bg-danger.text-white
+          h4.mb-0 #{title}
+        .card-body
+          p.lead #{message}
+          if error && error.stack
+            .alert.alert-secondary.mt-4
+              h5 エラー詳細:
+              pre.mb-0= error.stack
+          .mt-4
+            a.btn.btn-primary(href="/") ホームに戻る

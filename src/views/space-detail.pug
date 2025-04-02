@@ -1,0 +1,85 @@
+extends layout
+
+block content
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1.h3= space.title
+    if space.permalink
+      a.btn.btn-outline-secondary(href=space.permalink, target="_blank")
+        i.bi.bi-box-arrow-up-right.me-1
+        | Wrikeで開く
+    else
+      - const wrikeUrl = `https://www.wrike.com/open.htm?id=${space.id}`
+      a.btn.btn-outline-secondary(href=wrikeUrl, target="_blank")
+        i.bi.bi-box-arrow-up-right.me-1
+        | Wrikeで開く
+
+  .row
+    .col-md-6.mb-4
+      .card.shadow-sm
+        .card-header.bg-light
+          h5.mb-0 スペース情報
+        .card-body
+          .mb-3
+            strong ID:
+            .text-muted= space.id
+          .mb-3
+            strong タイトル:
+            .text-muted= space.title
+          .mb-3
+            strong アクセスタイプ:
+            .text-muted= space.accessType
+          if space.description
+            .mb-3
+              strong 説明:
+              .text-muted= space.description
+
+  .card.shadow-sm.mb-4
+    .card-header.bg-light
+      h5.mb-0 フォルダ一覧
+    .card-body.p-0
+      .table-responsive
+        table.table.table-hover.mb-0
+          thead.table-light
+            tr
+              th タイトル
+              th スコープ
+              th 作成日
+              th 更新日
+              th アクション
+          tbody
+            if folders && folders.length > 0
+              each folder in folders
+                tr
+                  td
+                    if folder.childIds && folder.childIds.length > 0
+                      i.bi.bi-folder-fill.text-warning.me-2
+                    else
+                      i.bi.bi-folder.text-warning.me-2
+                    a(href=`/folders/${folder.id}`)= folder.title
+                  td
+                    if folder.scope
+                      span.badge.bg-info= folder.scope
+                    else
+                      span.text-muted 未設定
+                  td= folder.createdDate
+                  td= folder.updatedDate
+                  td
+                    .btn-group.btn-group-sm
+                      a.btn.btn-outline-primary(href=`/folders/${folder.id}`)
+                        i.bi.bi-folder
+                        span.ms-1 詳細
+                      a.btn.btn-outline-info(href=`/folders/${folder.id}/tasks`)
+                        i.bi.bi-list-task
+                        span.ms-1 タスク
+                      - const folderWrikeUrl = `https://www.wrike.com/open.htm?id=${folder.id}`
+                      a.btn.btn-outline-secondary(href=folderWrikeUrl, target="_blank")
+                        i.bi.bi-box-arrow-up-right
+                        span.ms-1 Wrikeで開く
+            else
+              tr
+                td.text-center.py-4(colspan="5") フォルダがありません
+
+  .mt-4
+    a.btn.btn-secondary(href="/spaces")
+      i.bi.bi-arrow-left.me-1
+      | スペース一覧に戻る

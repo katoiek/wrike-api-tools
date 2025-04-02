@@ -1,0 +1,173 @@
+extends layout
+
+block content
+  .row.mb-4
+    .col-md-6
+      h1.h3 タスク一覧
+    .col-md-6.text-end
+      .input-group
+        input.form-control#taskSearch(type="text", placeholder="タスクを検索...")
+        button.btn.btn-primary(type="button")
+          i.bi.bi-search
+
+  .card.shadow-sm
+    .card-header.bg-light
+      .row
+        .col-md-6
+          h5.mb-0 タスク
+        .col-md-6.text-end
+          select.form-select.form-select-sm#taskSort(style="width: auto; display: inline-block;")
+            option(value="title") タイトル順
+            option(value="status") ステータス順
+            option(value="dueDate") 期限日順
+            option(value="createdDate") 作成日順
+
+    .card-body.p-0
+      .table-responsive
+        table.table.table-hover.mb-0
+          thead.table-light
+            tr
+              th タイトル
+              th ステータス
+              th 担当者
+              th 期限日
+              th 作成日
+              th アクション
+          tbody#taskList
+            if tasks && tasks.length > 0
+              each task in tasks
+                tr
+                  td
+                    - const taskWrikeUrl = `https://www.wrike.com/open.htm?id=${task.id}`
+                    a(href=taskWrikeUrl, target="_blank")= task.title
+                  td
+                    span.badge.task-status(data-status=task.status, class=`bg-${task.status === 'Active' ? 'success' : (task.status === 'Completed' ? 'primary' : (task.status === 'Deferred' ? 'warning' : (task.status === 'Cancelled' ? 'danger' : 'secondary')))}`)= task.status
+                  td
+                    if task.responsibles && task.responsibles.length > 0
+                      each responsible in task.responsibles
+                        span.badge.bg-secondary.me-1= responsible.firstName
+                    else
+                      span.text-muted 未割り当て
+                  td.task-due-date(data-date=(task.dates ? task.dates.due : null))= task.dates ? task.dates.due : '未設定'
+                  td.task-created-date(data-date=task.createdDate)= task.createdDate
+                  td
+                    .btn-group.btn-group-sm
+                      - const taskActionWrikeUrl = `https://www.wrike.com/open.htm?id=${task.id}`
+                      a.btn.btn-outline-primary(href=taskActionWrikeUrl, target="_blank")
+                        i.bi.bi-box-arrow-up-right
+                        span.ms-1 Wrikeで開く
+            else
+              tr
+                td.text-center.py-4(colspan="6") タスクがありません
+
+      if nextPageToken
+        .d-flex.justify-content-between.align-items-center.mt-3
+          .text-muted 1ページあたり最大1000件のタスクを表示
+          nav(aria-label="ページネーション")
+            ul.pagination
+              if currentPage > 1
+                li.page-item
+                  a.page-link(href=`/tasks?page=${currentPage - 1}`) 前へ
+
+              - var startPage = Math.max(1, currentPage - 2)
+              - var endPage = Math.min(startPage + 4, totalPages)
+
+              if startPage > 1
+                li.page-item
+                  a.page-link(href="/tasks?page=1") 1
+                if startPage > 2
+                  li.page-item.disabled
+                    span.page-link ...
+
+              - for (var i = startPage; i <= endPage; i++)
+                li.page-item(class=i === currentPage ? 'active' : '')
+                  a.page-link(href=`/tasks?page=${i}`)= i
+
+              if endPage < totalPages
+                if endPage < totalPages - 1
+                  li.page-item.disabled
+                    span.page-link ...
+                li.page-item
+                  a.page-link(href=`/tasks?page=${totalPages}`)= totalPages
+
+              if nextPageToken
+                li.page-item
+                  a.page-link(href=`/tasks?page=${currentPage + 1}`) 次へ
+
+  if error
+    .alert.alert-danger.mt-3= error
+
+block scripts
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      // 日付のフォーマット
+      document.querySelectorAll('.task-due-date, .task-created-date').forEach(function(el) {
+        const dateStr = el.getAttribute('data-date');
+        if (dateStr) {
+          try {
+            const date = new Date(dateStr);
+            el.textContent = date.toLocaleDateString('ja-JP');
+          } catch (e) {
+            el.textContent = '未設定';
+          }
+        } else {
+          el.textContent = '未設定';
+        }
+      });
+
+      // タスク検索機能
+      document.getElementById('taskSearch').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll('#taskList tr');
+
+        rows.forEach(row => {
+          const title = row.querySelector('td:first-child').textContent.toLowerCase();
+          if (title.includes(searchTerm)) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      });
+
+      // タスクソート機能
+      document.getElementById('taskSort').addEventListener('change', function(e) {
+        const sortBy = e.target.value;
+        const tbody = document.getElementById('taskList');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        rows.sort((a, b) => {
+          let aValue, bValue;
+
+          switch(sortBy) {
+            case 'title':
+              aValue = a.querySelector('td:nth-child(1)').textContent;
+              bValue = b.querySelector('td:nth-child(1)').textContent;
+              return aValue.localeCompare(bValue);
+
+            case 'status':
+              aValue = a.querySelector('td:nth-child(2)').textContent;
+              bValue = b.querySelector('td:nth-child(2)').textContent;
+              return aValue.localeCompare(bValue);
+
+            case 'dueDate':
+              aValue = a.querySelector('td:nth-child(4)').getAttribute('data-date');
+              bValue = b.querySelector('td:nth-child(4)').getAttribute('data-date');
+              return new Date(aValue || '9999-12-31') - new Date(bValue || '9999-12-31');
+
+            case 'createdDate':
+              aValue = a.querySelector('td:nth-child(5)').getAttribute('data-date');
+              bValue = b.querySelector('td:nth-child(5)').getAttribute('data-date');
+              return new Date(aValue || '1970-01-01') - new Date(bValue || '1970-01-01');
+
+            default:
+              return 0;
+          }
+        });
+
+        // テーブルを再構築
+        rows.forEach(row => tbody.appendChild(row));
+      });
+    });
+
+
