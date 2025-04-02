@@ -35,12 +35,12 @@ block content
           .card-body
             .d-flex.justify-content-between.align-items-start
               div
-                h5.card-title #{__('nav.tasks')}
-                h2.display-6 #{stats && stats.tasks ? stats.tasks : 0}
-              .icon-bg.bg-success.text-white
-                i.bi.bi-check2-square.fs-1
+                h5.card-title #{__('nav.userGroups')}
+                h2.display-6 #{stats && stats.userGroups ? stats.userGroups : 0}
+              .icon-bg.bg-warning.text-white
+                i.bi.bi-diagram-3.fs-1
           .card-footer.bg-white.border-0
-            a.btn.btn-sm.btn-outline-primary(href="/tasks") #{__('dashboard.viewDetails')}
+            a.btn.btn-sm.btn-outline-primary(href="/user-groups") #{__('dashboard.viewDetails')}
 
       .col-md-4.mb-4
         .card.shadow-sm.h-100

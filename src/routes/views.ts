@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
     // Get statistics
     const stats = {
       spaces: 0,
-      tasks: 0 as number | string,
+      userGroups: 0,
       users: 0
     };
 
@@ -40,16 +40,16 @@ router.get('/', async (req, res) => {
       console.error('Error getting spaces count:', error);
     }
 
-    // Get tasks count
+    // Get user groups count
     try {
-      // タスクAPIではpageSizeパラメータが使用可能（1000件取得）
-      const tasksResult = await wrikeApi.getTasks({ pageSize: 1000 });
-      if (tasksResult && tasksResult.data) {
-        // 実際の総タスク数を表示（nextPageTokenがある場合は「1000+」と表示）
-        stats.tasks = tasksResult.nextPageToken ? '1000+' : tasksResult.data.length;
+      // ユーザーグループの数を取得
+      const userGroupsResult = await wrikeApi.getUserGroups();
+      if (userGroupsResult && userGroupsResult.data) {
+        // 親グループの数を表示
+        stats.userGroups = userGroupsResult.data.length;
       }
     } catch (error) {
-      console.error('Error getting tasks count:', error);
+      console.error('Error getting user groups count:', error);
     }
 
     // Get users count
@@ -75,7 +75,7 @@ router.get('/', async (req, res) => {
       user: req.session.userInfo,
       stats: {
         spaces: 0,
-        tasks: 0 as number | string,
+        userGroups: 0,
         users: 0
       },
       error: 'Failed to load dashboard data'
@@ -163,54 +163,13 @@ router.get('/folders', requireAuth, async (req, res) => {
 });
 
 /**
- * Tasks page
+ * Tasks page - 無効化
  */
 router.get('/tasks', requireAuth, async (req, res) => {
-  try {
-    console.log('Tasks route called');
-    // ページネーション用のパラメータを取得
-    const page = parseInt(req.query.page as string) || 1;
-    const pageTokens: { [key: number]: string } = req.session.taskPageTokens || {};
-
-    // APIリクエストのパラメータを設定（pageSizeを1000に設定）
-    const params: any = { pageSize: 1000 };
-    if (page > 1 && pageTokens[page]) {
-      params.nextPageToken = pageTokens[page];
-    }
-
-    console.log('Calling getTasks with params:', params);
-    const result = await wrikeApi.getTasks(params);
-    console.log('Tasks result data length:', result.data.length);
-    if (result.data && result.data.length > 0) {
-      console.log('First task object:', JSON.stringify(result.data[0], null, 2));
-    }
-
-    // 次のページのトークンを保存
-    if (result.nextPageToken) {
-      if (!req.session.taskPageTokens) {
-        req.session.taskPageTokens = {};
-      }
-      req.session.taskPageTokens[page + 1] = result.nextPageToken;
-    }
-
-    // 総ページ数を計算（推定）
-    const totalPages = Math.max(page, result.nextPageToken ? page + 1 : page);
-
-    res.render('tasks', {
-      title: 'タスク',
-      tasks: result.data,
-      user: req.session.userInfo,
-      nextPageToken: result.nextPageToken,
-      currentPage: page,
-      totalPages: totalPages
-    });
-  } catch (error) {
-    console.error('Error getting tasks:', error);
-    res.render('error', {
-      title: 'エラー',
-      message: 'タスクの読み込みに失敗しました'
-    });
-  }
+  res.render('error', {
+    title: 'エラー',
+    message: 'タスク機能は現在無効化されています'
+  });
 });
 
 /**
