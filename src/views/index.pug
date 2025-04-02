@@ -23,53 +23,36 @@ block content
           .card-body
             .d-flex.justify-content-between.align-items-start
               div
-                h5.card-title スペース
+                h5.card-title #{__('nav.spaces')}
                 h2.display-6 #{stats && stats.spaces ? stats.spaces : 0}
               .icon-bg.bg-primary.text-white
                 i.bi.bi-building.fs-1
           .card-footer.bg-white.border-0
-            a.btn.btn-sm.btn-outline-primary(href="/spaces") 詳細を見る
+            a.btn.btn-sm.btn-outline-primary(href="/spaces") #{__('dashboard.viewDetails')}
 
       .col-md-4.mb-4
         .card.shadow-sm.h-100
           .card-body
             .d-flex.justify-content-between.align-items-start
               div
-                h5.card-title タスク
+                h5.card-title #{__('nav.tasks')}
                 h2.display-6 #{stats && stats.tasks ? stats.tasks : 0}
               .icon-bg.bg-success.text-white
                 i.bi.bi-check2-square.fs-1
           .card-footer.bg-white.border-0
-            a.btn.btn-sm.btn-outline-primary(href="/tasks") 詳細を見る
+            a.btn.btn-sm.btn-outline-primary(href="/tasks") #{__('dashboard.viewDetails')}
 
       .col-md-4.mb-4
         .card.shadow-sm.h-100
           .card-body
             .d-flex.justify-content-between.align-items-start
               div
-                h5.card-title ユーザー
+                h5.card-title #{__('nav.users')}
                 h2.display-6 #{stats && stats.users ? stats.users : 0}
               .icon-bg.bg-info.text-white
                 i.bi.bi-people.fs-1
           .card-footer.bg-white.border-0
-            a.btn.btn-sm.btn-outline-primary(href="/users") 詳細を見る
-
-    .row.mb-4
-      .col-md-8.mx-auto.mb-4
-        .card.shadow-sm.h-100
-          .card-header.bg-light
-            h5.mb-0 #{__('dashboard.quickActions')}
-          .card-body
-            .d-grid.gap-2
-              a.btn.btn-outline-primary(href="/tasks/create")
-                i.bi.bi-plus-circle.me-2
-                | #{__('dashboard.createTask')}
-              a.btn.btn-outline-primary(href="/users/invite")
-                i.bi.bi-person-plus.me-2
-                | #{__('dashboard.inviteUser')}
-
-
-
+            a.btn.btn-sm.btn-outline-primary(href="/users") #{__('dashboard.viewDetails')}
 
 block scripts
   style.

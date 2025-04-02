@@ -20,7 +20,8 @@
     "welcome": "Wrike API ツールへようこそ",
     "quickActions": "クイックアクション",
     "createTask": "新規タスク作成",
-    "inviteUser": "ユーザー招待"
+    "inviteUser": "ユーザー招待",
+    "viewDetails": "詳細を見る"
   },
   "spaces": {
     "title": "スペース",
@@ -48,7 +49,7 @@
     "actions": "アクション"
   },
   "footer": {
-    "copyright": "© 2023 Wrike API ツール"
+    "copyright": "© 2025 Wrike API ツール"
   },
   "common": {
     "save": "保存",

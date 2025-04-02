@@ -20,7 +20,8 @@
     "welcome": "Welcome to Wrike API Tools",
     "quickActions": "Quick Actions",
     "createTask": "Create New Task",
-    "inviteUser": "Invite User"
+    "inviteUser": "Invite User",
+    "viewDetails": "View Details"
   },
   "spaces": {
     "title": "Spaces",
@@ -48,7 +49,7 @@
     "actions": "Actions"
   },
   "footer": {
-    "copyright": "© 2023 Wrike API Tools"
+    "copyright": "© 2025 Wrike API Tools"
   },
   "common": {
     "save": "Save",
