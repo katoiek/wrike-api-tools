@@ -9,10 +9,10 @@ Wrike API Tools is a local UI tool that allows you to access and manipulate Wrik
 
 ### Features
 
-- Secure access to Wrike accounts via OAuth2 authentication
+- Accessing your Wrike account using OAuth2 (permanent token)
 - View spaces, tasks, and user information
 - Create and manage tasks
-- Invite users
+- users lists
 - Multi-language support (English/Japanese)
 
 ### Installation
@@ -85,10 +85,10 @@ Wrike API Toolsは、Wrike APIを使用してWrikeのデータにアクセスし
 
 ### 機能
 
-- OAuth2認証によるWrikeアカウントへの安全なアクセス
+- OAuth2（永続トークン）によるWrikeアカウントへのアクセス
 - スペース、タスク、ユーザー情報の表示
 - タスクの作成と管理
-- ユーザーの招待
+- ユーザー一覧
 - 多言語対応（英語/日本語）
 
 ### インストール方法
