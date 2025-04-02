@@ -23,29 +23,27 @@
   background-color: #0d6efd;
   color: white;
   border-color: #0d6efd;
-}/* Custom styles */
-.card {
-  margin-bottom: 20px;
-}
-.table-responsive {
-  overflow-x: auto;
 }
 
-/* Language selector styles */
-.dropdown-item.active {
-  background-color: #0d6efd;
-  color: white;
+/* User Groups styles */
+.group-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-/* Add a checkmark to active language */
-.dropdown-item.active::after {
-  content: " ✓";
-  font-weight: bold;
+.group-row:hover {
+  background-color: rgba(13, 110, 253, 0.05);
 }
 
-/* Style for language buttons in login page */
-.btn-group .btn.active {
-  background-color: #0d6efd;
-  color: white;
-  border-color: #0d6efd;
+.group-details-content {
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+}
+
+.toggle-details {
+  transition: all 0.2s;
+}
+
+.toggle-details:hover {
+  transform: scale(1.05);
 }

@@ -8,6 +8,7 @@
     "spaces": "スペース",
     "tasks": "タスク",
     "users": "ユーザー",
+    "userGroups": "ユーザーグループ",
     "logout": "ログアウト"
   },
   "login": {
@@ -48,6 +49,20 @@
     "role": "役割",
     "actions": "アクション"
   },
+  "userGroups": {
+    "title": "ユーザーグループ",
+    "name": "グループ名",
+    "members": "メンバー",
+    "childGroups": "サブグループ",
+    "expand": "展開",
+    "collapse": "折りたたむ",
+    "noMembers": "メンバーなし",
+    "noChildGroups": "サブグループなし",
+    "totalMembers": "メンバー数",
+    "totalChildGroups": "サブグループ数",
+    "accessError": "アクセス拒否",
+    "accessErrorDescription": "お使いのWrikeアカウントにはユーザーグループへのアクセス権限がありません。この機能を使用するには、追加の権限または異なるアカウントタイプが必要な場合があります。"
+  },
   "footer": {
     "copyright": "© 2025 Wrike API ツール"
   },
@@ -63,6 +78,7 @@
     "error": "エラー",
     "success": "成功",
     "confirm": "確認",
+    "backToDashboard": "ダッシュボードに戻る",
     "language": "言語"
   },
   "error": {

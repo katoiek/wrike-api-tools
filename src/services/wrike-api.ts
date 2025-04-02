@@ -25,7 +25,7 @@ interface TokenResponse {
 }
 
 // Wrike API response interface
-interface WrikeApiResponse<T> {
+export interface WrikeApiResponse<T> {
   kind: string;
   data: T[];
   nextPageToken?: string;
@@ -97,7 +97,27 @@ export class WrikeApiClient {
       throw new Error('WRIKE_REDIRECT_URI is not set in .env file');
     }
 
-    return `https://login.wrike.com/oauth2/authorize/v4?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}`;
+    // Use specified scopes for Wrike API access
+    const scopes = [
+      'Default',
+      'wsReadOnly',
+      'wsReadWrite',
+      'amReadOnlyUser',
+      'amReadWriteUser',
+      'amReadOnlyGroup',
+      'amReadWriteGroup',
+      'amReadOnlyWorkflow',
+      'amReadWriteWorkflow',
+      'dataExportFull',
+      'amReadOnlyAuditLog',
+      'amReadOnlyAccessRole',
+      'amReadOnlyWorkSchedule',
+      'amReadWriteWorkSchedule',
+      'amReadOnlyInvitation',
+      'amReadWriteInvitation'
+    ];
+
+    return `https://login.wrike.com/oauth2/authorize/v4?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${encodeURIComponent(scopes.join(','))}`;
   }
 
   /**
@@ -501,6 +521,192 @@ export class WrikeApiClient {
       }
     }
     return results;
+  }
+
+  /**
+   * Get user groups
+   * @param params Query parameters
+   * @returns List of user groups
+   */
+  async getUserGroups(params: any = {}) {
+    console.log('Requesting user groups with params:', params);
+    try {
+      // Prepare parameters to get all groups
+      const requestParams = { ...params };
+
+      // Get all user groups in a single request
+      console.log('Fetching all groups in a single request');
+      const response = await this.request<WrikeApiResponse<any>>({
+        method: 'GET',
+        url: '/groups',
+        params: requestParams
+      });
+      console.log('User groups response data length:', response.data.length);
+
+      // Debug: Log the structure of the first group
+      if (response.data.length > 0) {
+        console.log('Sample group structure:', JSON.stringify(response.data[0], null, 2));
+      }
+
+      // Create a map of all groups for easy lookup
+      const groupsMap = new Map();
+      response.data.forEach(group => {
+        groupsMap.set(group.id, group);
+      });
+
+      // Filter top-level groups (those with empty parentIds)
+      const topLevelGroups = response.data.filter(group => !group.parentIds || group.parentIds.length === 0);
+      console.log(`Found ${topLevelGroups.length} top-level groups`);
+
+      // Build a hierarchical structure
+      const buildHierarchy = (groups: any[]) => {
+        return groups.map((group: any) => {
+          // Create a new object with the group properties
+          const hierarchicalGroup: any = { ...group };
+
+          // Initialize empty arrays for members and childGroups
+          hierarchicalGroup.members = [];
+          hierarchicalGroup.childGroups = [];
+
+          // Add member count based on memberIds
+          if (hierarchicalGroup.memberIds) {
+            hierarchicalGroup.memberCount = hierarchicalGroup.memberIds.length;
+
+            // Add member IDs as simple objects for display
+            hierarchicalGroup.members = hierarchicalGroup.memberIds.map((id: string) => ({ id }));
+          }
+
+          // Add child groups based on childIds
+          if (hierarchicalGroup.childIds && hierarchicalGroup.childIds.length > 0) {
+            hierarchicalGroup.childGroupCount = hierarchicalGroup.childIds.length;
+
+            // Find child groups from the map and add them to the childGroups array
+            hierarchicalGroup.childGroups = hierarchicalGroup.childIds
+              .map((id: string) => groupsMap.get(id))
+              .filter(Boolean)  // Filter out undefined values
+              .map((childGroup: any) => {
+                // Create a simplified version of the child group
+                return {
+                  id: childGroup.id,
+                  title: childGroup.title || childGroup.name,
+                  memberCount: childGroup.memberIds ? childGroup.memberIds.length : 0,
+                  childGroupCount: childGroup.childIds ? childGroup.childIds.length : 0
+                };
+              });
+          }
+
+          return hierarchicalGroup;
+        });
+      };
+
+      // Replace the response data with the hierarchical structure
+      response.data = buildHierarchy(topLevelGroups);
+
+      return response;
+    } catch (error: any) {
+      // Log the error with more details
+      console.error('API request error:', error.message);
+      if (error.response) {
+        console.error('Error response:', error.response.status, error.response.data);
+      }
+      // Re-throw the error to be handled by the caller
+      throw error;
+    }
+  }
+
+  /**
+   * Get group details (members and child groups)
+   * This method is deprecated and should not be used directly.
+   * Use the API route /api/groups/:id/details instead.
+   * @param groupId The group ID
+   * @returns Group details with members and child groups
+   */
+  async getGroupDetails(groupId: string) {
+    console.log(`WARNING: getGroupDetails method is deprecated. Use API route /api/groups/:id/details instead.`);
+    console.log(`Requesting details for group ${groupId}`);
+
+    try {
+      // Get all groups and find the specific one
+      console.log(`Fetching all groups to find group with ID: ${groupId}`);
+      const allGroupsResponse = await this.request<WrikeApiResponse<any>>({
+        method: 'GET',
+        url: '/groups',
+        params: {}
+      });
+
+      if (!allGroupsResponse.data || allGroupsResponse.data.length === 0) {
+        console.error('No groups found in response');
+        throw new Error('No groups found');
+      }
+
+      // Find the specific group by ID
+      const group = allGroupsResponse.data.find((g: any) => g.id === groupId);
+
+      if (!group) {
+        console.error(`Group ${groupId} not found in response`);
+        throw new Error(`Group ${groupId} not found`);
+      }
+      console.log(`Group ${groupId} details:`, JSON.stringify(group, null, 2));
+
+      // Prepare result object
+      const result = {
+        members: [],
+        childGroups: []
+      };
+
+      // Add member IDs as simple objects
+      if (group.memberIds && group.memberIds.length > 0) {
+        console.log(`Group ${groupId} has ${group.memberIds.length} members`);
+        result.members = group.memberIds.map((id: string) => ({ id }));
+      }
+
+      // For child groups, we can use the already fetched groups
+      if (group.childIds && group.childIds.length > 0) {
+        console.log(`Group ${groupId} has ${group.childIds.length} child groups`);
+
+        // Create a map of all groups for easy lookup
+        const groupsMap = new Map();
+        allGroupsResponse.data.forEach((g: any) => {
+          groupsMap.set(g.id, g);
+        });
+
+        // Find child groups from the map
+        const childGroups = group.childIds
+          .map((id: string) => groupsMap.get(id))
+          .filter(Boolean); // Filter out undefined values
+
+        console.log(`Successfully found ${childGroups.length} child groups`);
+
+        // Get child groups from the map
+        result.childGroups = childGroups.map((childGroup: any) => {
+          // Create a simplified version of the child group
+          return {
+            id: childGroup.id,
+            title: childGroup.title || childGroup.name,
+            memberIds: childGroup.memberIds || [],
+            memberCount: childGroup.memberIds ? childGroup.memberIds.length : 0,
+            childIds: childGroup.childIds || [],
+            childGroupCount: childGroup.childIds ? childGroup.childIds.length : 0
+          };
+        });
+      }
+
+      return result;
+    } catch (error: any) {
+      console.error(`Error getting details for group ${groupId}:`, error);
+      console.error('Error details:', error.message);
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', JSON.stringify(error.response.data || {}));
+      }
+
+      // Return empty results instead of throwing to avoid breaking the UI
+      return {
+        members: [],
+        childGroups: [],
+        error: error.message
+      };
+    }
   }
 }
 

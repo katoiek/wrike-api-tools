@@ -3,7 +3,7 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import csv from 'csv-parser';
-import { wrikeApi } from '../services/wrike-api';
+import { wrikeApi, WrikeApiResponse } from '../services/wrike-api';
 import { getSetting, getAllSettings, getAllSettingsWithMetadata } from '../services/settings';
 
 const router = express.Router();
@@ -231,6 +231,103 @@ router.get('/settings/:key', async (req, res) => {
     res.json({ key, value });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get group details (members and child groups)
+ */
+router.get('/groups/:id/details', async (req, res) => {
+  try {
+    const groupId = req.params.id;
+
+    if (!groupId) {
+      return res.status(400).json({ error: 'Group ID is required' });
+    }
+
+    console.log(`API route: Getting details for group ${groupId}`);
+
+    // Step 1: Get all groups and find the specific one
+    const allGroupsResponse = await wrikeApi.request<WrikeApiResponse<any>>({
+      method: 'GET',
+      url: '/groups',
+      params: {}
+    });
+
+    if (!allGroupsResponse.data || allGroupsResponse.data.length === 0) {
+      console.error('No groups found in response');
+      return res.status(404).json({ error: 'No groups found' });
+    }
+
+    // Find the specific group by ID
+    const group = allGroupsResponse.data.find((g: any) => g.id === groupId);
+
+    if (!group) {
+      console.error(`Group ${groupId} not found in response`);
+      return res.status(404).json({ error: `Group ${groupId} not found` });
+    }
+    console.log(`Found group ${groupId}: ${group.title || group.name}`);
+
+    // Prepare result object
+    const result: {
+      members: Array<{ id: string }>;
+      childGroups: Array<any>;
+    } = {
+      members: [],
+      childGroups: []
+    };
+
+    // Add member IDs as simple objects
+    if (group.memberIds && group.memberIds.length > 0) {
+      console.log(`Group ${groupId} has ${group.memberIds.length} members`);
+      result.members = group.memberIds.map((id: string) => ({ id }));
+    }
+
+    // Step 2: Get child groups if needed (using the already fetched groups)
+    if (group.childIds && group.childIds.length > 0) {
+      console.log(`Group ${groupId} has ${group.childIds.length} child groups`);
+
+      // Create a map of all groups for easy lookup
+      const groupsMap = new Map();
+      allGroupsResponse.data.forEach((g: any) => {
+        groupsMap.set(g.id, g);
+      });
+
+      // Find child groups from the map
+      const childGroups = group.childIds
+        .map((id: string) => groupsMap.get(id))
+        .filter(Boolean); // Filter out undefined values
+
+      console.log(`Successfully found ${childGroups.length} child groups`);
+
+      // Create simplified versions of child groups
+      result.childGroups = childGroups.map((childGroup: any) => {
+        return {
+          id: childGroup.id,
+          title: childGroup.title || childGroup.name,
+          memberIds: childGroup.memberIds || [],
+          memberCount: childGroup.memberIds ? childGroup.memberIds.length : 0,
+          childIds: childGroup.childIds || [],
+          childGroupCount: childGroup.childIds ? childGroup.childIds.length : 0
+        };
+      });
+    }
+
+    res.json(result);
+  } catch (error: any) {
+    console.error('Error getting group details:', error);
+    console.error('Error stack:', error.stack);
+
+    // Check if it's a permission error (403)
+    const isPermissionError = error.response && error.response.status === 403;
+    const errorMessage = isPermissionError
+      ? 'Permission denied: Your account does not have access to this group'
+      : 'Failed to load group details';
+
+    res.status(error.response?.status || 500).json({
+      error: errorMessage,
+      details: error.message
+    });
   }
 });
 

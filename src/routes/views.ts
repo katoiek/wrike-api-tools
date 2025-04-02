@@ -275,4 +275,46 @@ router.get('/spaces/:id', requireAuth, async (req, res) => {
   });
 });
 
+/**
+ * User Groups page
+ */
+router.get('/user-groups', requireAuth, async (req, res) => {
+  try {
+    // Get user groups from Wrike API
+    const result = await wrikeApi.getUserGroups();
+
+    // Log detailed information about the response
+    console.log('User groups count:', result.data.length);
+
+    // Log detailed information about each group
+    result.data.forEach((group, index) => {
+      console.log(`Group ${index + 1}:`, group.title || group.name);
+      console.log(`  ID: ${group.id}`);
+      console.log(`  Members: ${group.members ? group.members.length : 0}`);
+      console.log(`  Child Groups: ${group.childGroups ? group.childGroups.length : 0}`);
+    });
+
+    res.render('user-groups', {
+      title: 'User Groups',
+      userGroups: result.data,
+      user: req.session.userInfo
+    });
+  } catch (error: any) {
+    console.error('Error getting user groups:', error);
+
+    // Check if it's a permission error (403)
+    const isPermissionError = error.response && error.response.status === 403;
+    const errorMessage = isPermissionError
+      ? 'Permission denied: Your account does not have access to user groups'
+      : 'Failed to load user groups';
+
+    // Render the user-groups page with error information instead of generic error page
+    res.render('user-groups', {
+      title: 'User Groups',
+      user: req.session.userInfo,
+      error: errorMessage
+    });
+  }
+});
+
 export default router;

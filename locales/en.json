@@ -8,6 +8,7 @@
     "spaces": "Spaces",
     "tasks": "Tasks",
     "users": "Users",
+    "userGroups": "User Groups",
     "logout": "Logout"
   },
   "login": {
@@ -48,6 +49,20 @@
     "role": "Role",
     "actions": "Actions"
   },
+  "userGroups": {
+    "title": "User Groups",
+    "name": "Name",
+    "members": "Members",
+    "childGroups": "Child Groups",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "noMembers": "No members",
+    "noChildGroups": "No child groups",
+    "totalMembers": "Total Members",
+    "totalChildGroups": "Total Child Groups",
+    "accessError": "Access Denied",
+    "accessErrorDescription": "Your Wrike account does not have permission to access user groups. This feature may require additional permissions or a different account type."
+  },
   "footer": {
     "copyright": "© 2025 Wrike API Tools"
   },
@@ -63,6 +78,7 @@
     "error": "Error",
     "success": "Success",
     "confirm": "Confirm",
+    "backToDashboard": "Back to Dashboard",
     "language": "Language"
   },
   "error": {
