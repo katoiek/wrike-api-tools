@@ -5,14 +5,12 @@
 <a id="english"></a>
 ## English
 
-Wrike API Tools is a local UI tool that allows you to access and manipulate Wrike data using the Wrike API.
+Wrike API Tools is a local UI tool that allows you to access and manage Wrike data, with a focus on user groups and organizational structure, using the Wrike API.
 
 ### Features
 
 - Accessing your Wrike account using OAuth2 (permanent token)
-- View spaces, tasks, and user information
-- Create and manage tasks
-- users lists
+- View spaces, user groups, and user information
 - Multi-language support (English/Japanese)
 
 ### Installation
@@ -72,6 +70,13 @@ To run in development mode:
 npm run dev
 ```
 
+### Recent Updates
+
+- Removed task management functionality
+- Added user group management with hierarchical view
+- Improved API performance and reliability
+- Fixed compatibility issues with Wrike API v4
+
 ### License
 
 MIT
@@ -81,14 +86,12 @@ MIT
 <a id="japanese"></a>
 ## 日本語
 
-Wrike API Toolsは、Wrike APIを使用してWrikeのデータにアクセスし、操作するためのローカルUIを提供するツールです。
+Wrike API Toolsは、Wrike APIを使用してWrikeのデータにアクセスし、ユーザーグループと組織構造に焦点を当てて管理するためのローカルUIを提供するツールです。
 
 ### 機能
 
 - OAuth2（永続トークン）によるWrikeアカウントへのアクセス
-- スペース、タスク、ユーザー情報の表示
-- タスクの作成と管理
-- ユーザー一覧
+- スペース、ユーザーグループ、ユーザー情報の表示
 - 多言語対応（英語/日本語）
 
 ### インストール方法
@@ -147,6 +150,13 @@ npm start
 ```bash
 npm run dev
 ```
+
+### 最近の更新
+
+- タスク管理機能を削除
+- ユーザーグループ管理と階層表示機能を追加
+- API性能と信頼性の向上
+- Wrike API v4との互換性問題を修正
 
 ### ライセンス
 
