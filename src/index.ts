@@ -96,11 +96,46 @@ app.use(i18nConfig.init);
 
 // Add middleware to check cookie and set locale on each request
 app.use((req, res, next) => {
+  // First check if we have a cookie set
   const cookieLang = req.cookies?.lang;
   if (cookieLang && ['en', 'ja'].includes(cookieLang) && typeof req.setLocale === 'function') {
     req.setLocale(cookieLang);
     console.log(`Set locale from cookie: ${cookieLang}`);
+    return next();
   }
+
+  // If no cookie is set, check browser language
+  const acceptLanguage = req.headers['accept-language'] || '';
+  console.log(`Browser accept-language: ${acceptLanguage}`);
+
+  // Parse the Accept-Language header
+  const browserLangs = acceptLanguage.split(',')
+    .map(lang => lang.split(';')[0].trim().toLowerCase())
+    .filter(Boolean);
+
+  console.log(`Parsed browser languages: ${browserLangs.join(', ')}`);
+
+  // Check if Japanese is one of the preferred languages
+  const preferJapanese = browserLangs.some(lang =>
+    lang === 'ja' || lang.startsWith('ja-')
+  );
+
+  // Set language based on browser preference
+  const detectedLang = preferJapanese ? 'ja' : 'en';
+  console.log(`Detected language from browser: ${detectedLang}`);
+
+  // Set the language in cookie
+  res.cookie('lang', detectedLang, {
+    maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+    httpOnly: false,
+    path: '/'
+  });
+
+  // Set locale using i18n method
+  if (typeof req.setLocale === 'function') {
+    req.setLocale(detectedLang);
+  }
+
   next();
 });
 
@@ -124,8 +159,8 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
       return cookieLang;
     }
 
-    // Default to Japanese
-    return 'ja';
+    // Default to English (this should rarely be reached now)
+    return 'en';
   };
 
   // Log current locale for debugging

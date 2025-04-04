@@ -341,6 +341,21 @@ export class WrikeApiClient {
   }
 
   /**
+   * Get a specific contact (user) by ID
+   * @param contactId The contact ID
+   * @returns The contact information
+   */
+  async getContact(contactId: string) {
+    console.log(`Requesting contact with ID: ${contactId}`);
+    const response = await this.request<WrikeApiResponse<any>>({
+      method: 'GET',
+      url: `/contacts/${contactId}`
+    });
+    console.log(`Contact response for ID ${contactId}:`, response);
+    return response;
+  }
+
+  /**
    * Get spaces
    * @param params Query parameters
    * @returns List of spaces

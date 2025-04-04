@@ -12,7 +12,7 @@ const i18nConfig = new I18n({
 
   // Default locale
   // デフォルトのロケール
-  defaultLocale: 'ja',
+  defaultLocale: 'en',
 
   // Directory where language json files are stored
   // 言語JSONファイルが保存されているディレクトリ

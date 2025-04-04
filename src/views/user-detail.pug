@@ -1,0 +1,110 @@
+extends layout
+
+block content
+  .row.mb-4
+    .col-md-8
+      h1.h3 ユーザー詳細
+    .col-md-4.text-end
+      a.btn.btn-outline-secondary(href="/users")
+        i.bi.bi-arrow-left.me-1
+        | ユーザー一覧に戻る
+
+  if userDetail
+    .row
+      .col-md-4.mb-4
+        .card.shadow-sm
+          .card-body.text-center
+            if userDetail.avatarUrl
+              img.rounded-circle.mb-3(src=userDetail.avatarUrl, width="120", height="120", alt=userDetail.firstName)
+            else
+              .rounded-circle.bg-secondary.text-white.d-flex.align-items-center.justify-content-center.mx-auto.mb-3(style="width: 120px; height: 120px;")
+                span.display-4 #{userDetail.firstName.charAt(0)}#{userDetail.lastName.charAt(0)}
+            h4 #{userDetail.firstName} #{userDetail.lastName}
+            p.text-muted #{userDetail.title || '役職なし'}
+            if userDetail.deleted
+              span.badge.bg-danger.mb-2 削除済み
+            else
+              span.badge.bg-success.mb-2 アクティブ
+            if userDetail.role
+              p
+                span.badge.user-role(data-role=userDetail.role, class=`bg-${userDetail.role === 'Admin' ? 'danger' : (userDetail.role === 'User' ? 'primary' : (userDetail.role === 'Collaborator' ? 'success' : (userDetail.role === 'External' ? 'warning' : 'secondary')))}`)= userDetail.role
+
+      .col-md-8
+        .card.shadow-sm.mb-4
+          .card-header.bg-light
+            h5.mb-0 基本情報
+          .card-body
+            .row.mb-3
+              .col-md-4
+                strong ID
+              .col-md-8
+                code #{userDetail.id}
+            
+            if userDetail.profiles && userDetail.profiles.length > 0
+              .row.mb-3
+                .col-md-4
+                  strong メールアドレス
+                .col-md-8
+                  a(href=`mailto:${userDetail.profiles[0].email}`) #{userDetail.profiles[0].email}
+            
+            .row.mb-3
+              .col-md-4
+                strong タイムゾーン
+              .col-md-8
+                | #{userDetail.timezone || '未設定'}
+            
+            .row.mb-3
+              .col-md-4
+                strong ロケール
+              .col-md-8
+                | #{userDetail.locale || '未設定'}
+            
+            .row.mb-3
+              .col-md-4
+                strong 最終アクセス
+              .col-md-8
+                if userDetail.lastActivity
+                  | #{new Date(userDetail.lastActivity).toLocaleString()}
+                else
+                  | 未設定
+        
+        if userDetail.profiles && userDetail.profiles.length > 0
+          .card.shadow-sm.mb-4
+            .card-header.bg-light
+              h5.mb-0 プロフィール情報
+            .card-body
+              each profile in userDetail.profiles
+                .row.mb-3
+                  .col-md-4
+                    strong アカウントタイプ
+                  .col-md-8
+                    | #{profile.accountType || '未設定'}
+                
+                .row.mb-3
+                  .col-md-4
+                    strong 外部ID
+                  .col-md-8
+                    | #{profile.external ? profile.external.id || '未設定' : '未設定'}
+                
+                if profile.phone
+                  .row.mb-3
+                    .col-md-4
+                      strong 電話番号
+                    .col-md-8
+                      a(href=`tel:${profile.phone}`) #{profile.phone}
+        
+        if userDetail.metadata
+          .card.shadow-sm
+            .card-header.bg-light
+              h5.mb-0 メタデータ
+            .card-body
+              pre.bg-light.p-3.rounded #{JSON.stringify(userDetail.metadata, null, 2)}
+  else
+    .alert.alert-danger ユーザー情報が見つかりません
+
+block scripts
+  style.
+    .user-role {
+      font-size: 0.9rem;
+      padding: 0.4rem 0.8rem;
+    }

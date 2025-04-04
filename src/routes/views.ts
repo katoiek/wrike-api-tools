@@ -178,11 +178,31 @@ router.get('/tasks', requireAuth, async (req, res) => {
 router.get('/users', requireAuth, async (req, res) => {
   try {
     const result = await wrikeApi.getContacts();
-    console.log('Users API response:', JSON.stringify(result, null, 2));
+
+    // サンプルユーザーの構造をログに出力して確認
+    if (result.data && result.data.length > 0) {
+      console.log('Sample user structure:', JSON.stringify(result.data[0], null, 2));
+    }
+
+    // ユーザー情報の処理
+    const processedUsers = result.data.map(user => {
+      // プロファイル情報からメールアドレスを取得
+      if (user.profiles && user.profiles.length > 0) {
+        const profile = user.profiles[0];
+        if (profile.email) {
+          user.email = profile.email;
+        }
+        // タイトル（役割）を取得
+        if (profile.title) {
+          user.role = profile.title;
+        }
+      }
+      return user;
+    });
 
     res.render('users', {
       title: 'Users',
-      users: result.data,
+      users: processedUsers,
       user: req.session.userInfo
     });
   } catch (error) {
@@ -195,13 +215,104 @@ router.get('/users', requireAuth, async (req, res) => {
 });
 
 /**
- * User import page
+ * User export to CSV
  */
-router.get('/users/import', requireAuth, (req, res) => {
-  res.render('user-import', {
-    title: 'Import Users',
-    user: req.session.userInfo
-  });
+router.get('/users/export', requireAuth, async (req, res) => {
+  try {
+    // Get filter parameters from query
+    const search = req.query.search as string || '';
+    const status = req.query.status as string || 'active';
+    const domain = req.query.domain as string || 'all';
+
+    console.log(`Exporting users with filters - search: "${search}", status: ${status}, domain: ${domain}`);
+
+    // Get all users
+    const result = await wrikeApi.getContacts();
+
+    // Process users (same as in the /users route)
+    const processedUsers = result.data.map(user => {
+      // Get email from profiles
+      if (user.profiles && user.profiles.length > 0) {
+        const profile = user.profiles[0];
+        if (profile.email) {
+          user.email = profile.email;
+        }
+        if (profile.title) {
+          user.role = profile.title;
+        }
+      }
+      return user;
+    });
+
+    // Apply filters
+    const filteredUsers = processedUsers.filter(user => {
+      // Search filter
+      const matchesSearch = search === '' ||
+        user.id.toLowerCase().includes(search.toLowerCase()) ||
+        `${user.firstName} ${user.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
+        (user.email && user.email.toLowerCase().includes(search.toLowerCase()));
+
+      // Status filter
+      const matchesStatus =
+        status === 'all' ||
+        (status === 'active' && !user.deleted) ||
+        (status === 'deleted' && user.deleted);
+
+      // Domain filter
+      let matchesDomain = true;
+      if (domain !== 'all') {
+        if (domain === 'has-email') {
+          // メールアドレスが設定されている場合のみ
+          matchesDomain = !!user.email && user.email.trim() !== '';
+        } else if (domain === 'no-email') {
+          // メールアドレスが設定されていない場合のみ
+          matchesDomain = !user.email || user.email.trim() === '';
+        } else if (user.email) {
+          // 特定のドメインでフィルタリング
+          const parts = user.email.split('@');
+          matchesDomain = parts.length === 2 && parts[1].toLowerCase() === domain.toLowerCase();
+        } else {
+          matchesDomain = false;
+        }
+      }
+
+      return matchesSearch && matchesStatus && matchesDomain;
+    });
+
+    console.log(`Filtered ${processedUsers.length} users to ${filteredUsers.length} for export`);
+
+    // Generate CSV content
+    let csv = '\ufeff'; // BOM for UTF-8
+    csv += 'ID,FirstName,LastName,Email,Status\n';
+
+    filteredUsers.forEach(user => {
+      const status = user.deleted ?
+        (req.getLocale() === 'en' ? 'Deleted' : '削除済み') :
+        (req.getLocale() === 'en' ? 'Active' : 'アクティブ');
+
+      const email = user.email || (req.getLocale() === 'en' ? 'Not set' : '未設定');
+
+      // Escape fields that might contain commas
+      const escapeCsv = (field: string | undefined): string => {
+        if (field && (field.includes(',') || field.includes('"') || field.includes('\n'))) {
+          return `"${field.replace(/"/g, '""')}"`;
+        }
+        return field || '';
+      };
+
+      csv += `${escapeCsv(user.id)},${escapeCsv(user.firstName)},${escapeCsv(user.lastName)},${escapeCsv(email)},${escapeCsv(status)}\n`;
+    });
+
+    // Set headers for CSV download
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=wrike_users.csv');
+
+    // Send CSV content
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting users to CSV:', error);
+    res.status(500).send('Failed to export users');
+  }
 });
 
 /**
@@ -232,6 +343,54 @@ router.get('/spaces/:id', requireAuth, async (req, res) => {
     title: 'エラー',
     message: 'スペース詳細機能は現在無効化されています'
   });
+});
+
+/**
+ * User detail page
+ */
+router.get('/users/:id', requireAuth, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    console.log(`Fetching user details for ID: ${userId}`);
+
+    // Get specific contact by ID using the direct endpoint
+    const result = await wrikeApi.getContact(userId);
+
+    if (!result || !result.data || result.data.length === 0) {
+      console.error(`User with ID ${userId} not found`);
+      return res.render('error', {
+        title: 'Error',
+        message: `User with ID ${userId} not found`
+      });
+    }
+
+    const userDetail = result.data[0];
+
+    // プロファイル情報からメールアドレスと役割を取得
+    if (userDetail.profiles && userDetail.profiles.length > 0) {
+      const profile = userDetail.profiles[0];
+      if (profile.email) {
+        userDetail.email = profile.email;
+      }
+      if (profile.title) {
+        userDetail.role = profile.title;
+      }
+    }
+
+    console.log(`Found user: ${userDetail.firstName} ${userDetail.lastName}, Email: ${userDetail.email || '未設定'}, Role: ${userDetail.role || '未設定'}`);
+
+    res.render('user-detail', {
+      title: `User: ${userDetail.firstName} ${userDetail.lastName}`,
+      userDetail,
+      user: req.session.userInfo
+    });
+  } catch (error) {
+    console.error('Error getting user details:', error);
+    res.render('error', {
+      title: 'Error',
+      message: 'Failed to load user details'
+    });
+  }
 });
 
 /**

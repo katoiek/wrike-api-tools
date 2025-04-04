@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Wrike API Tools",
-    "description": "A tool for Wrike API integration"
+    "description": ""
   },
   "nav": {
     "dashboard": "Dashboard",

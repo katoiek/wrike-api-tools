@@ -2,9 +2,9 @@ extends layout
 
 block content
   .d-flex.justify-content-between.align-items-center.mb-4
-    h1 Spaces
+    h1 #{__('spaces.title')}
     .input-group.w-auto
-      input#searchInput.form-control(type="text", placeholder="Search spaces...")
+      input#searchInput.form-control(type="text", placeholder=getLocale() === 'en' ? 'Search spaces...' : 'スペースを検索...')
       button.btn.btn-outline-secondary(type="button")
         i.bi.bi-search
 
@@ -15,12 +15,12 @@ block content
           thead
             tr
               th(onclick="sortTable(0)")
-                | Name
+                | #{__('spaces.name')}
                 i.bi.bi-arrow-down-up
               th(onclick="sortTable(1)")
-                | Access Type
+                | #{getLocale() === 'en' ? 'Access Type' : 'アクセスタイプ'}
                 i.bi.bi-arrow-down-up
-              th Actions
+              th #{__('spaces.actions')}
           tbody
             if spaces && spaces.length
               each space in spaces
@@ -31,24 +31,24 @@ block content
                     if space.permalink
                       a.btn.btn-sm.btn-outline-secondary(href=space.permalink, target="_blank")
                         i.bi.bi-box-arrow-up-right
-                        span.ms-1 Wrikeで開く
+                        span.ms-1 #{getLocale() === 'en' ? 'Open in Wrike' : 'Wrikeで開く'}
                     else
                       - const wrikeUrl = `https://www.wrike.com/open.htm?id=${space.id}`
                       a.btn.btn-sm.btn-outline-secondary(href=wrikeUrl, target="_blank")
                         i.bi.bi-box-arrow-up-right
-                        span.ms-1 Wrikeで開く
+                        span.ms-1 #{getLocale() === 'en' ? 'Open in Wrike' : 'Wrikeで開く'}
             else
               tr
-                td.text-center(colspan="3") No spaces found
+                td.text-center(colspan="3") #{getLocale() === 'en' ? 'No spaces found' : 'スペースがありません'}
 
       if nextPageToken
         .d-flex.justify-content-between.align-items-center.mt-3
-          .text-muted Showing up to 100 spaces per page
+          .text-muted #{getLocale() === 'en' ? 'Showing up to 100 spaces per page' : '1ページあたり最大100スペースを表示'}
           nav(aria-label="Pagination")
             ul.pagination
               if currentPage > 1
                 li.page-item
-                  a.page-link(href=`/spaces?page=${currentPage - 1}`) Previous
+                  a.page-link(href=`/spaces?page=${currentPage - 1}`) #{getLocale() === 'en' ? 'Previous' : '前へ'}
 
               - var startPage = Math.max(1, currentPage - 2)
               - var endPage = Math.min(startPage + 4, totalPages)
@@ -73,18 +73,7 @@ block content
 
               if nextPageToken
                 li.page-item
-                  a.page-link(href=`/spaces?page=${currentPage + 1}`) Next
-
-              if endPage < totalPages
-                if endPage < totalPages - 1
-                  li.page-item.disabled
-                    span.page-link ...
-                li.page-item
-                  a.page-link(href=`/spaces?page=${totalPages}`)= totalPages
-
-              if nextPageToken
-                li.page-item
-                  a.page-link(href=`/spaces?page=${currentPage + 1}`) Next
+                  a.page-link(href=`/spaces?page=${currentPage + 1}`) #{getLocale() === 'en' ? 'Next' : '次へ'}
 
 block scripts
   script.
