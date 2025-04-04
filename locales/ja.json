@@ -61,7 +61,13 @@
     "totalMembers": "メンバー数",
     "totalChildGroups": "サブグループ数",
     "accessError": "アクセス拒否",
-    "accessErrorDescription": "お使いのWrikeアカウントにはユーザーグループへのアクセス権限がありません。この機能を使用するには、追加の権限または異なるアカウントタイプが必要な場合があります。"
+    "accessErrorDescription": "お使いのWrikeアカウントにはユーザーグループへのアクセス権限がありません。この機能を使用するには、追加の権限または異なるアカウントタイプが必要な場合があります。",
+    "memberName": "名前",
+    "memberEmail": "メールアドレス",
+    "memberTitle": "役職",
+    "memberCompany": "会社名",
+    "memberRole": "ロール",
+    "memberId": "ID"
   },
   "footer": {
     "copyright": "© 2025 Wrike API ツール"

@@ -61,7 +61,13 @@
     "totalMembers": "Total Members",
     "totalChildGroups": "Total Child Groups",
     "accessError": "Access Denied",
-    "accessErrorDescription": "Your Wrike account does not have permission to access user groups. This feature may require additional permissions or a different account type."
+    "accessErrorDescription": "Your Wrike account does not have permission to access user groups. This feature may require additional permissions or a different account type.",
+    "memberName": "Name",
+    "memberEmail": "Email",
+    "memberTitle": "Title",
+    "memberCompany": "Company",
+    "memberRole": "Role",
+    "memberId": "ID"
   },
   "footer": {
     "copyright": "© 2025 Wrike API Tools"

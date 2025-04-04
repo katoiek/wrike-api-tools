@@ -270,20 +270,66 @@ router.get('/groups/:id/details', async (req, res) => {
 
     // Prepare result object
     const result: {
-      members: Array<{ id: string }>;
+      members: Array<{
+        id: string;
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+        role?: string;
+      }>;
       childGroups: Array<any>;
     } = {
       members: [],
       childGroups: []
     };
 
-    // Add member IDs as simple objects
+    // Step 2: Get contacts (users) to get names and emails
+    let contacts: any[] = [];
     if (group.memberIds && group.memberIds.length > 0) {
-      console.log(`Group ${groupId} has ${group.memberIds.length} members`);
-      result.members = group.memberIds.map((id: string) => ({ id }));
+      console.log(`Group ${groupId} has ${group.memberIds.length} members, fetching contact details`);
+
+      try {
+        const contactsResponse = await wrikeApi.request<WrikeApiResponse<any>>({
+          method: 'GET',
+          url: '/contacts',
+          params: {}
+        });
+
+        if (contactsResponse.data && contactsResponse.data.length > 0) {
+          contacts = contactsResponse.data;
+          console.log(`Retrieved ${contacts.length} contacts for lookup`);
+        }
+      } catch (error) {
+        console.error('Error fetching contacts:', error);
+        // Continue with just IDs if contacts can't be fetched
+      }
+
+      // Create a map of contacts for easy lookup
+      const contactsMap = new Map();
+      contacts.forEach(contact => {
+        contactsMap.set(contact.id, contact);
+      });
+
+      // Add member details including name, email and title if available
+      result.members = group.memberIds.map((id: string) => {
+        const contact = contactsMap.get(id);
+        if (contact) {
+          return {
+            id,
+            firstName: contact.firstName || '',
+            lastName: contact.lastName || '',
+            email: contact.profiles && contact.profiles.length > 0 ? contact.profiles[0].email || '' : '',
+            role: contact.role || '',
+            title: contact.title || '',
+            companyName: contact.companyName || ''
+          };
+        } else {
+          return { id };
+        }
+      });
     }
 
-    // Step 2: Get child groups if needed (using the already fetched groups)
+    // Step 3: Get child groups if needed (using the already fetched groups)
     if (group.childIds && group.childIds.length > 0) {
       console.log(`Group ${groupId} has ${group.childIds.length} child groups`);
 

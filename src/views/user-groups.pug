@@ -129,24 +129,45 @@ block scripts
         // Child Groups Section
         html += `<h5 class="mb-3">${'#{__('userGroups.childGroups')}'}</h5>`;
         if (data.childGroups && data.childGroups.length > 0) {
-          html += '<ul class="list-group mb-4">';
+          // テーブルビューに変更
+          html += `
+            <div class="table-responsive mb-4">
+              <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>${'#{__('userGroups.name')}'}</th>
+                    <th>${'#{__('userGroups.totalMembers')}'}</th>
+                    <th>${'#{__('userGroups.totalChildGroups')}'}</th>
+                    <th>ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
+
           data.childGroups.forEach(childGroup => {
             // Calculate member count - either from memberIds array or from memberCount property
             const memberCount = childGroup.memberIds ? childGroup.memberIds.length :
                                (childGroup.memberCount || 0);
 
+            // Calculate child group count
+            const childGroupCount = childGroup.childIds ? childGroup.childIds.length :
+                                   (childGroup.childGroupCount || 0);
+
             html += `
-              <li class="list-group-item">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <strong>${childGroup.title || childGroup.name}</strong>
-                  </div>
-                  <span class="badge bg-primary rounded-pill">${memberCount}</span>
-                </div>
-              </li>
+              <tr>
+                <td><strong>${childGroup.title || childGroup.name}</strong></td>
+                <td><span class="badge bg-primary rounded-pill">${memberCount}</span></td>
+                <td><span class="badge bg-secondary rounded-pill">${childGroupCount}</span></td>
+                <td><small>${childGroup.id}</small></td>
+              </tr>
             `;
           });
-          html += '</ul>';
+
+          html += `
+                </tbody>
+              </table>
+            </div>
+          `;
         } else {
           html += `<p class="text-muted">${'#{__('userGroups.noChildGroups')}'}</p>`;
         }
@@ -154,23 +175,51 @@ block scripts
         // Members Section
         html += `<h5 class="mb-3">${'#{__('userGroups.members')}'}</h5>`;
         if (data.members && data.members.length > 0) {
-          html += '<ul class="list-group">';
+          // テーブルビューに変更
+          html += `
+            <div class="table-responsive">
+              <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>${'#{__('userGroups.memberName')}'}</th>
+                    <th>${'#{__('userGroups.memberEmail')}'}</th>
+                    <th>${'#{__('userGroups.memberTitle')}'}</th>
+                    <th>${'#{__('userGroups.memberCompany')}'}</th>
+                    <th>${'#{__('userGroups.memberRole')}'}</th>
+                    <th>${'#{__('userGroups.memberId')}'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
+
           data.members.forEach(member => {
-            // Just display the member ID for now
+            // Display member name, email, ID, title and company if available
             const memberId = member.id;
+            const memberName = member.firstName && member.lastName
+              ? `${member.firstName} ${member.lastName}`
+              : (member.firstName || member.lastName || '');
+            const memberEmail = member.email || '';
+            const memberTitle = member.title || '';
+            const memberCompany = member.companyName || '';
+            const memberRole = member.role || '';
 
             html += `
-              <li class="list-group-item">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <span class="badge bg-secondary me-2">ID</span>
-                    ${memberId}
-                  </div>
-                </div>
-              </li>
+              <tr>
+                <td><strong>${memberName || '-'}</strong></td>
+                <td><span class="text-muted">${memberEmail || '-'}</span></td>
+                <td>${memberTitle ? `<span class="badge bg-info">${memberTitle}</span>` : '-'}</td>
+                <td>${memberCompany ? `<span class="badge bg-secondary">${memberCompany}</span>` : '-'}</td>
+                <td>${memberRole ? `<span class="badge bg-warning">${memberRole}</span>` : '-'}</td>
+                <td><small>${memberId}</small></td>
+              </tr>
             `;
           });
-          html += '</ul>';
+
+          html += `
+                </tbody>
+              </table>
+            </div>
+          `;
         } else {
           html += `<p class="text-muted">${'#{__('userGroups.noMembers')}'}</p>`;
         }

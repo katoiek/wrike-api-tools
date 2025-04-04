@@ -28,7 +28,7 @@ html(lang=getLocale())
             li.nav-item.dropdown.me-3
               a.nav-link.dropdown-toggle(href="#", role="button", data-bs-toggle="dropdown")
                 i.bi.bi-globe.me-1
-                | #{__('common.language')}
+                | #{getLocale() === 'en' ? 'English' : '日本語'}
               ul.dropdown-menu
                 li
                   a.dropdown-item(href="/language/change/en", class=getLocale() === 'en' ? 'active' : '', data-lang="en") English
