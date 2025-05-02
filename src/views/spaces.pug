@@ -18,14 +18,27 @@ block content
                 | #{__('spaces.name')}
                 i.bi.bi-arrow-down-up
               th(onclick="sortTable(1)")
+                | #{getLocale() === 'en' ? 'Space ID' : 'スペースID'}
+                i.bi.bi-arrow-down-up
+              th(onclick="sortTable(2)")
                 | #{getLocale() === 'en' ? 'Access Type' : 'アクセスタイプ'}
                 i.bi.bi-arrow-down-up
               th #{__('spaces.actions')}
+            tr.filters
+              th
+                input.form-control.form-control-sm.column-filter(type="text", data-column="0", placeholder=getLocale() === 'en' ? 'Filter by name...' : '名前でフィルター...')
+              th
+                input.form-control.form-control-sm.column-filter(type="text", data-column="1", placeholder=getLocale() === 'en' ? 'Filter by ID...' : 'IDでフィルター...')
+              th
+                input.form-control.form-control-sm.column-filter(type="text", data-column="2", placeholder=getLocale() === 'en' ? 'Filter by access type...' : 'アクセスタイプでフィルター...')
+              th
           tbody
             if spaces && spaces.length
               each space in spaces
                 tr
                   td= space.title
+                  td
+                    code= space.id
                   td= space.accessType
                   td
                     if space.permalink
@@ -39,7 +52,7 @@ block content
                         span.ms-1 #{getLocale() === 'en' ? 'Open in Wrike' : 'Wrikeで開く'}
             else
               tr
-                td.text-center(colspan="3") #{getLocale() === 'en' ? 'No spaces found' : 'スペースがありません'}
+                td.text-center(colspan="4") #{getLocale() === 'en' ? 'No spaces found' : 'スペースがありません'}
 
       if nextPageToken
         .d-flex.justify-content-between.align-items-center.mt-3
@@ -77,23 +90,69 @@ block content
 
 block scripts
   script.
-    // Search functionality
-    document.getElementById('searchInput').addEventListener('keyup', function() {
-      const input = this.value.toLowerCase();
+    // フィルター状態を保持する配列
+    const filterValues = [
+      '', // 名前フィルター
+      '', // IDフィルター
+      ''  // アクセスタイプフィルター
+    ];
+
+    // 全体検索の値
+    let globalSearchValue = '';
+
+    // テーブルフィルタリング関数
+    function filterTable() {
       const table = document.getElementById('spacesTable');
       const rows = table.getElementsByTagName('tr');
+      const hasFilters = filterValues.some(filter => filter !== '');
 
-      for (let i = 1; i < rows.length; i++) {
-        const nameCell = rows[i].getElementsByTagName('td')[0];
-        if (nameCell) {
-          const name = nameCell.textContent || nameCell.innerText;
-          if (name.toLowerCase().indexOf(input) > -1) {
-            rows[i].style.display = '';
-          } else {
-            rows[i].style.display = 'none';
+      // ヘッダー行とフィルター行をスキップするため、開始インデックスを2に設定
+      for (let i = 2; i < rows.length; i++) {
+        const cells = rows[i].getElementsByTagName('td');
+        if (cells.length) {
+          let showRow = true;
+
+          // 各カラムのフィルターを適用
+          for (let j = 0; j < filterValues.length; j++) {
+            if (filterValues[j] !== '' && cells[j]) {
+              const cellText = cells[j].textContent || cells[j].innerText;
+              if (cellText.toLowerCase().indexOf(filterValues[j].toLowerCase()) === -1) {
+                showRow = false;
+                break;
+              }
+            }
           }
+
+          // グローバル検索を適用
+          if (showRow && globalSearchValue !== '') {
+            showRow = false;
+            for (let j = 0; j < cells.length; j++) {
+              const cellText = cells[j].textContent || cells[j].innerText;
+              if (cellText.toLowerCase().indexOf(globalSearchValue.toLowerCase()) > -1) {
+                showRow = true;
+                break;
+              }
+            }
+          }
+
+          rows[i].style.display = showRow ? '' : 'none';
         }
       }
+    }
+
+    // グローバル検索機能
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+      globalSearchValue = this.value.toLowerCase();
+      filterTable();
+    });
+
+    // カラムフィルター機能
+    document.querySelectorAll('.column-filter').forEach(filter => {
+      filter.addEventListener('keyup', function() {
+        const column = parseInt(this.getAttribute('data-column'));
+        filterValues[column] = this.value;
+        filterTable();
+      });
     });
 
     // Sorting functionality
@@ -107,10 +166,16 @@ block scripts
         switching = false;
         rows = table.rows;
 
-        for (i = 1; i < (rows.length - 1); i++) {
+        // ヘッダー行とフィルター行をスキップするため、開始インデックスを2に設定
+        for (i = 2; i < (rows.length - 1); i++) {
           shouldSwitch = false;
           x = rows[i].getElementsByTagName('td')[n];
           y = rows[i + 1].getElementsByTagName('td')[n];
+
+          // 非表示の行はスキップ
+          if (rows[i].style.display === 'none' || rows[i + 1].style.display === 'none') {
+            continue;
+          }
 
           if (dir === 'asc') {
             if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
