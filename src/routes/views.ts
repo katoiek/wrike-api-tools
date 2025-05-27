@@ -26,7 +26,8 @@ router.get('/', async (req, res) => {
     const stats = {
       spaces: 0,
       userGroups: 0,
-      users: 0
+      users: 0,
+      folderBlueprints: 0
     };
 
     // Get spaces count
@@ -63,6 +64,18 @@ router.get('/', async (req, res) => {
       console.error('Error getting users count:', error);
     }
 
+    // Get folder blueprints count
+    try {
+      const folderBlueprintsResult = await wrikeApi.getFolderBlueprints();
+      if (folderBlueprintsResult && folderBlueprintsResult.data) {
+        stats.folderBlueprints = folderBlueprintsResult.data.length;
+      }
+    } catch (error) {
+      console.error('Error getting folder blueprints count:', error);
+    }
+
+
+
     res.render('index', {
       title: 'Dashboard',
       user: req.session.userInfo,
@@ -76,7 +89,8 @@ router.get('/', async (req, res) => {
       stats: {
         spaces: 0,
         userGroups: 0,
-        users: 0
+        users: 0,
+        folderBlueprints: 0
       },
       error: 'Failed to load dashboard data'
     });
@@ -434,5 +448,41 @@ router.get('/user-groups', requireAuth, async (req, res) => {
     });
   }
 });
+
+/**
+ * Folder Blueprints page
+ */
+router.get('/folder-blueprints', requireAuth, async (req, res) => {
+  try {
+    // Get folder blueprints from Wrike API
+    const result = await wrikeApi.getFolderBlueprints();
+
+    // Log detailed information about the response
+    console.log('Folder blueprints count:', result.data.length);
+
+    res.render('folder-blueprints', {
+      title: 'Folder Blueprints',
+      folderBlueprints: result.data,
+      user: req.session.userInfo
+    });
+  } catch (error: any) {
+    console.error('Error getting folder blueprints:', error);
+
+    // Check if it's a permission error (403)
+    const isPermissionError = error.response && error.response.status === 403;
+    const errorMessage = isPermissionError
+      ? 'Permission denied: Your account does not have access to folder blueprints'
+      : 'Failed to load folder blueprints';
+
+    // Render the folder-blueprints page with error information
+    res.render('folder-blueprints', {
+      title: 'Folder Blueprints',
+      user: req.session.userInfo,
+      error: errorMessage
+    });
+  }
+});
+
+
 
 export default router;

@@ -1,0 +1,189 @@
+extends layout
+
+block content
+  .container.mt-4
+    h1.mb-4= __('folder_blueprints.title')
+
+    if error
+      .alert.alert-danger= error
+    else
+      .card.mb-4
+        .card-body
+          .row.mb-3
+            .col-md-6
+              .input-group
+                input#searchInput.form-control(type="text", placeholder=__('folder_blueprints.search'))
+                button.btn.btn-outline-secondary(type="button")
+                  i.bi.bi-search
+            .col-md-6.text-end
+              .btn-group
+                button#sortName.btn.btn-outline-secondary.active(type="button", data-sort="name")
+                  i.bi.bi-sort-alpha-down.me-1
+                  = __('folder_blueprints.sort_name')
+                button#sortId.btn.btn-outline-secondary(type="button", data-sort="id")
+                  i.bi.bi-sort-numeric-down.me-1
+                  = __('folder_blueprints.sort_id')
+                button#sortScope.btn.btn-outline-secondary(type="button", data-sort="scope")
+                  i.bi.bi-sort-alpha-down.me-1
+                  = __('folder_blueprints.sort_scope')
+
+      if folderBlueprints && folderBlueprints.length > 0
+        .table-responsive
+          table.table.table-striped.table-hover
+            thead
+              tr
+                th= __('folder_blueprints.name')
+                th= __('folder_blueprints.id')
+                th= __('folder_blueprints.scope')
+                th= __('folder_blueprints.created')
+                th= __('folder_blueprints.updated')
+                th.text-end= __('folder_blueprints.actions')
+            tbody#blueprintsTable
+              each blueprint in folderBlueprints
+                tr(data-id=blueprint.id, data-name=blueprint.title || blueprint.name, data-scope=blueprint.scope || '')
+                  td= blueprint.title || blueprint.name
+                  td
+                    code= blueprint.id
+                  td= blueprint.scope || '-'
+                  td= blueprint.createdDate ? new Date(blueprint.createdDate).toLocaleString() : '-'
+                  td= blueprint.updatedDate ? new Date(blueprint.updatedDate).toLocaleString() : '-'
+                  td.text-end
+                    button.btn.btn-sm.btn-primary.launch-blueprint(data-id=blueprint.id, data-title=blueprint.title || blueprint.name)
+                      i.bi.bi-play-fill.me-1
+                      = __('folder_blueprints.launch')
+      else
+        .alert.alert-info= __('folder_blueprints.no_blueprints')
+
+    // Launch Blueprint Modal
+    #launchBlueprintModal.modal.fade(tabindex='-1', role='dialog')
+      .modal-dialog(role='document')
+        .modal-content
+          .modal-header
+            h5.modal-title= __('folder_blueprints.launch_modal_title')
+            button.btn-close(type='button', data-bs-dismiss='modal', aria-label='Close')
+          .modal-body
+            form#launchBlueprintForm
+              input#blueprintId(type='hidden', name='blueprintId')
+              .form-group.mb-3
+                label(for='parentFolderId')= __('folder_blueprints.parent_folder')
+                input#parentFolderId.form-control(type='text', name='parentFolderId', required)
+                small.form-text.text-muted= __('folder_blueprints.parent_folder_help')
+              .form-group.mb-3
+                label(for='title')= __('folder_blueprints.title_field')
+                input#title.form-control(type='text', name='title', required)
+              .form-group.mb-3
+                label(for='description')= __('folder_blueprints.description_field')
+                textarea#description.form-control(name='description', rows='3')
+          .modal-footer
+            button.btn.btn-secondary(type='button', data-bs-dismiss='modal')= __('common.cancel')
+            button#launchButton.btn.btn-primary(type='button')= __('folder_blueprints.launch')
+
+    // Launch Result Modal
+    #launchResultModal.modal.fade(tabindex='-1', role='dialog')
+      .modal-dialog(role='document')
+        .modal-content
+          .modal-header
+            h5.modal-title= __('folder_blueprints.launch_result_title')
+            button.btn-close(type='button', data-bs-dismiss='modal', aria-label='Close')
+          .modal-body
+            #launchResultContent
+          .modal-footer
+            button.btn.btn-primary(type='button', data-bs-dismiss='modal')= __('common.close')
+
+block scripts
+  script.
+    $(document).ready(function() {
+      // Handle search
+      $('#searchInput').on('keyup', function() {
+        const value = $(this).val().toLowerCase();
+        $('#blueprintsTable tr').filter(function() {
+          $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+        });
+      });
+
+      // Handle sorting
+      $('.btn-outline-secondary').on('click', function() {
+        const sortBy = $(this).data('sort');
+        $('.btn-outline-secondary').removeClass('active');
+        $(this).addClass('active');
+
+        const rows = $('#blueprintsTable tr').get();
+        rows.sort(function(a, b) {
+          const A = $(a).data(sortBy).toString().toUpperCase();
+          const B = $(b).data(sortBy).toString().toUpperCase();
+          return A.localeCompare(B);
+        });
+
+        $.each(rows, function(index, row) {
+          $('#blueprintsTable').append(row);
+        });
+      });
+
+      // Handle launch button click
+      $('.launch-blueprint').on('click', function() {
+        const id = $(this).data('id');
+        const title = $(this).data('title');
+
+        $('#blueprintId').val(id);
+        $('#title').val(title);
+        $('#launchBlueprintModal').modal('show');
+      });
+
+      // Handle form submission
+      $('#launchButton').on('click', function() {
+        const blueprintId = $('#blueprintId').val();
+        const parentFolderId = $('#parentFolderId').val();
+        const title = $('#title').val();
+        const description = $('#description').val();
+
+        if (!parentFolderId || !title) {
+          alert('#{__("folder_blueprints.required_fields")}');
+          return;
+        }
+
+        // Prepare data for API call
+        const data = {
+          parentFolderId: parentFolderId,
+          title: title
+        };
+
+        if (description) {
+          data.description = description;
+        }
+
+        // Show loading state
+        $('#launchButton').prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> #{__("common.loading")}');
+
+        // Make API call
+        $.ajax({
+          url: `/api/folder-blueprints/${blueprintId}/launch`,
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify(data),
+          success: function(response) {
+            $('#launchBlueprintModal').modal('hide');
+
+            // Show result
+            let resultHtml = '<div class="alert alert-success">#{__("folder_blueprints.launch_success")}</div>';
+            resultHtml += '<p><strong>#{__("folder_blueprints.async_job_id")}:</strong> ' + response.data[0].id + '</p>';
+
+            $('#launchResultContent').html(resultHtml);
+            $('#launchResultModal').modal('show');
+          },
+          error: function(xhr) {
+            let errorMessage = '#{__("folder_blueprints.launch_error")}';
+
+            if (xhr.responseJSON && xhr.responseJSON.error) {
+              errorMessage += ': ' + xhr.responseJSON.error;
+            }
+
+            $('#launchResultContent').html('<div class="alert alert-danger">' + errorMessage + '</div>');
+            $('#launchResultModal').modal('show');
+          },
+          complete: function() {
+            // Reset button state
+            $('#launchButton').prop('disabled', false).text('#{__("folder_blueprints.launch")}');
+          }
+        });
+      });
+    });

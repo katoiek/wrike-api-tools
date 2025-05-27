@@ -377,4 +377,44 @@ router.get('/groups/:id/details', async (req, res) => {
   }
 });
 
+/**
+ * Get folder blueprints
+ */
+router.get('/folder-blueprints', async (req, res) => {
+  try {
+    const result = await wrikeApi.getFolderBlueprints(req.query);
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get folder blueprints in a space
+ */
+router.get('/spaces/:spaceId/folder-blueprints', async (req, res) => {
+  try {
+    const { spaceId } = req.params;
+    const result = await wrikeApi.getFolderBlueprintsInSpace(spaceId, req.query);
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Launch a folder blueprint asynchronously
+ */
+router.post('/folder-blueprints/:blueprintId/launch', async (req, res) => {
+  try {
+    const { blueprintId } = req.params;
+    const result = await wrikeApi.launchFolderBlueprintAsync(blueprintId, req.body);
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+
 export default router;

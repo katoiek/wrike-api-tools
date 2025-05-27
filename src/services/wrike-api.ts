@@ -723,6 +723,154 @@ export class WrikeApiClient {
       };
     }
   }
+
+  /**
+   * Get folder blueprints
+   * @param params Query parameters
+   * @returns List of folder blueprints
+   */
+  async getFolderBlueprints(params: any = {}) {
+    console.log('Requesting folder blueprints with params:', params);
+    try {
+      const response = await this.request<WrikeApiResponse<any>>({
+        method: 'GET',
+        url: '/folder_blueprints',
+        params: params
+      });
+      console.log('Folder blueprints response data length:', response.data.length);
+      return response;
+    } catch (error: any) {
+      console.error('Error getting folder blueprints:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.status, error.response.data);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get folder blueprints for a specific space
+   * @param spaceId The space ID
+   * @param params Query parameters
+   * @returns List of folder blueprints in the space
+   */
+  async getFolderBlueprintsInSpace(spaceId: string, params: any = {}) {
+    console.log(`Requesting folder blueprints in space ${spaceId} with params:`, params);
+    try {
+      const response = await this.request<WrikeApiResponse<any>>({
+        method: 'GET',
+        url: `/spaces/${spaceId}/folder_blueprints`,
+        params: params
+      });
+      console.log('Folder blueprints in space response data length:', response.data.length);
+      return response;
+    } catch (error: any) {
+      console.error(`Error getting folder blueprints in space ${spaceId}:`, error);
+      if (error.response) {
+        console.error('Error response:', error.response.status, error.response.data);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Launch a folder blueprint asynchronously
+   * @param blueprintId The folder blueprint ID
+   * @param data Launch parameters
+   * @returns Async job information
+   */
+  async launchFolderBlueprintAsync(blueprintId: string, data: any = {}) {
+    console.log(`Launching folder blueprint ${blueprintId} with data:`, data);
+    try {
+      const response = await this.request<WrikeApiResponse<any>>({
+        method: 'POST',
+        url: `/folder_blueprints/${blueprintId}/launch_async`,
+        data: data
+      });
+      console.log('Launch folder blueprint response:', response);
+      return response;
+    } catch (error: any) {
+      console.error(`Error launching folder blueprint ${blueprintId}:`, error);
+      if (error.response) {
+        console.error('Error response:', error.response.status, error.response.data);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get task blueprints
+   * @param params Query parameters
+   * @returns List of task blueprints
+   */
+  async getTaskBlueprints(params: any = {}) {
+    console.log('Requesting task blueprints with params:', params);
+    try {
+      const response = await this.request<WrikeApiResponse<any>>({
+        method: 'GET',
+        url: '/task_blueprints',
+        params: params
+      });
+      console.log('Task blueprints response data length:', response.data.length);
+      return response;
+    } catch (error: any) {
+      console.error('Error getting task blueprints:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.status, error.response.data);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get task blueprints for a specific space
+   * @param spaceId The space ID
+   * @param params Query parameters
+   * @returns List of task blueprints in the space
+   */
+  async getTaskBlueprintsInSpace(spaceId: string, params: any = {}) {
+    console.log(`Requesting task blueprints in space ${spaceId} with params:`, params);
+    try {
+      const response = await this.request<WrikeApiResponse<any>>({
+        method: 'GET',
+        url: `/spaces/${spaceId}/task_blueprints`,
+        params: params
+      });
+      console.log('Task blueprints in space response data length:', response.data.length);
+      return response;
+    } catch (error: any) {
+      console.error(`Error getting task blueprints in space ${spaceId}:`, error);
+      if (error.response) {
+        console.error('Error response:', error.response.status, error.response.data);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Launch a task blueprint asynchronously
+   * @param blueprintId The task blueprint ID
+   * @param data Launch parameters
+   * @returns Async job information
+   */
+  async launchTaskBlueprintAsync(blueprintId: string, data: any = {}) {
+    console.log(`Launching task blueprint ${blueprintId} with data:`, data);
+    try {
+      const response = await this.request<WrikeApiResponse<any>>({
+        method: 'POST',
+        url: `/task_blueprints/${blueprintId}/launch_async`,
+        data: data
+      });
+      console.log('Launch task blueprint response:', response);
+      return response;
+    } catch (error: any) {
+      console.error(`Error launching task blueprint ${blueprintId}:`, error);
+      if (error.response) {
+        console.error('Error response:', error.response.status, error.response.data);
+      }
+      throw error;
+    }
+  }
 }
 
 // Create and export a singleton instance

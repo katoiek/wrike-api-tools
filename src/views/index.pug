@@ -54,6 +54,19 @@ block content
           .card-footer.bg-white.border-0
             a.btn.btn-sm.btn-outline-primary(href="/users") #{__('dashboard.viewDetails')}
 
+    .row
+      .col-md-4.mb-4
+        .card.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-start
+              div
+                h5.card-title #{__('nav.folderBlueprints')}
+                h2.display-6 #{stats && stats.folderBlueprints ? stats.folderBlueprints : 0}
+              .icon-bg.bg-success.text-white
+                i.bi.bi-folder-plus.fs-1
+          .card-footer.bg-white.border-0
+            a.btn.btn-sm.btn-outline-primary(href="/folder-blueprints") #{__('dashboard.viewDetails')}
+
 block scripts
   style.
     .icon-bg {
