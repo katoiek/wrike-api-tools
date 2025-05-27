@@ -1,189 +1,321 @@
 extends layout
 
 block content
-  .container.mt-4
-    h1.mb-4= __('folder_blueprints.title')
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1 #{__('folder_blueprints.title')}
+    .input-group.w-auto
+      input#searchInput.form-control(type="text", placeholder=__('folder_blueprints.search'))
+      button.btn.btn-outline-secondary(type="button")
+        i.bi.bi-search
 
-    if error
-      .alert.alert-danger= error
-    else
-      .card.mb-4
-        .card-body
-          .row.mb-3
-            .col-md-6
-              .input-group
-                input#searchInput.form-control(type="text", placeholder=__('folder_blueprints.search'))
-                button.btn.btn-outline-secondary(type="button")
-                  i.bi.bi-search
-            .col-md-6.text-end
-              .btn-group
-                button#sortName.btn.btn-outline-secondary.active(type="button", data-sort="name")
-                  i.bi.bi-sort-alpha-down.me-1
-                  = __('folder_blueprints.sort_name')
-                button#sortId.btn.btn-outline-secondary(type="button", data-sort="id")
-                  i.bi.bi-sort-numeric-down.me-1
-                  = __('folder_blueprints.sort_id')
-                button#sortScope.btn.btn-outline-secondary(type="button", data-sort="scope")
-                  i.bi.bi-sort-alpha-down.me-1
-                  = __('folder_blueprints.sort_scope')
-
-      if folderBlueprints && folderBlueprints.length > 0
+  if error
+    .alert.alert-danger= error
+  else
+    .card.shadow-sm
+      .card-body
         .table-responsive
-          table.table.table-striped.table-hover
+          table.table.table-hover#blueprintsTable
             thead
               tr
-                th= __('folder_blueprints.name')
-                th= __('folder_blueprints.id')
-                th= __('folder_blueprints.scope')
-                th= __('folder_blueprints.created')
-                th= __('folder_blueprints.updated')
-                th.text-end= __('folder_blueprints.actions')
-            tbody#blueprintsTable
-              each blueprint in folderBlueprints
-                tr(data-id=blueprint.id, data-name=blueprint.title || blueprint.name, data-scope=blueprint.scope || '')
-                  td= blueprint.title || blueprint.name
-                  td
-                    code= blueprint.id
-                  td= blueprint.scope || '-'
-                  td= blueprint.createdDate ? new Date(blueprint.createdDate).toLocaleString() : '-'
-                  td= blueprint.updatedDate ? new Date(blueprint.updatedDate).toLocaleString() : '-'
-                  td.text-end
-                    button.btn.btn-sm.btn-primary.launch-blueprint(data-id=blueprint.id, data-title=blueprint.title || blueprint.name)
-                      i.bi.bi-play-fill.me-1
-                      = __('folder_blueprints.launch')
-      else
-        .alert.alert-info= __('folder_blueprints.no_blueprints')
-
-    // Launch Blueprint Modal
-    #launchBlueprintModal.modal.fade(tabindex='-1', role='dialog')
-      .modal-dialog(role='document')
-        .modal-content
-          .modal-header
-            h5.modal-title= __('folder_blueprints.launch_modal_title')
-            button.btn-close(type='button', data-bs-dismiss='modal', aria-label='Close')
-          .modal-body
-            form#launchBlueprintForm
-              input#blueprintId(type='hidden', name='blueprintId')
-              .form-group.mb-3
-                label(for='parentFolderId')= __('folder_blueprints.parent_folder')
-                input#parentFolderId.form-control(type='text', name='parentFolderId', required)
-                small.form-text.text-muted= __('folder_blueprints.parent_folder_help')
-              .form-group.mb-3
-                label(for='title')= __('folder_blueprints.title_field')
-                input#title.form-control(type='text', name='title', required)
-              .form-group.mb-3
-                label(for='description')= __('folder_blueprints.description_field')
-                textarea#description.form-control(name='description', rows='3')
-          .modal-footer
-            button.btn.btn-secondary(type='button', data-bs-dismiss='modal')= __('common.cancel')
-            button#launchButton.btn.btn-primary(type='button')= __('folder_blueprints.launch')
-
-    // Launch Result Modal
-    #launchResultModal.modal.fade(tabindex='-1', role='dialog')
-      .modal-dialog(role='document')
-        .modal-content
-          .modal-header
-            h5.modal-title= __('folder_blueprints.launch_result_title')
-            button.btn-close(type='button', data-bs-dismiss='modal', aria-label='Close')
-          .modal-body
-            #launchResultContent
-          .modal-footer
-            button.btn.btn-primary(type='button', data-bs-dismiss='modal')= __('common.close')
+                th(onclick="sortTable(0)")
+                  | #{__('folder_blueprints.name')}
+                  i.bi.bi-arrow-down-up
+                th(onclick="sortTable(1)")
+                  | #{__('folder_blueprints.id')}
+                  i.bi.bi-arrow-down-up
+                th(onclick="sortTable(2)")
+                  | #{__('folder_blueprints.scope')}
+                  i.bi.bi-arrow-down-up
+              tr.filters
+                th
+                  input.form-control.form-control-sm.column-filter(type="text", data-column="0", placeholder=__('folder_blueprints.filter_name'))
+                th
+                  input.form-control.form-control-sm.column-filter(type="text", data-column="1", placeholder=__('folder_blueprints.filter_id'))
+                th
+                  input.form-control.form-control-sm.column-filter(type="text", data-column="2", placeholder=__('folder_blueprints.filter_scope'))
+            tbody
+              if folderBlueprints && folderBlueprints.length
+                each blueprint in folderBlueprints
+                  tr
+                    td= blueprint.title || blueprint.name
+                    td
+                      code= blueprint.id
+                    td= blueprint.scope || '-'
+              else
+                tr
+                  td.text-center(colspan="3") #{__('folder_blueprints.no_blueprints')}
 
 block scripts
   script.
-    $(document).ready(function() {
-      // Handle search
-      $('#searchInput').on('keyup', function() {
-        const value = $(this).val().toLowerCase();
-        $('#blueprintsTable tr').filter(function() {
-          $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
-        });
-      });
+    // フィルター状態を保持する配列
+    const filterValues = [
+      '', // 名前フィルター
+      '', // IDフィルター
+      ''  // スコープフィルター
+    ];
 
-      // Handle sorting
-      $('.btn-outline-secondary').on('click', function() {
-        const sortBy = $(this).data('sort');
-        $('.btn-outline-secondary').removeClass('active');
-        $(this).addClass('active');
+    // 全体検索の値
+    let globalSearchValue = '';
 
-        const rows = $('#blueprintsTable tr').get();
-        rows.sort(function(a, b) {
-          const A = $(a).data(sortBy).toString().toUpperCase();
-          const B = $(b).data(sortBy).toString().toUpperCase();
-          return A.localeCompare(B);
-        });
+    // テーブルフィルタリング関数
+    function filterTable() {
+      const table = document.getElementById('blueprintsTable');
+      const rows = table.getElementsByTagName('tr');
+      const hasFilters = filterValues.some(filter => filter !== '');
 
-        $.each(rows, function(index, row) {
-          $('#blueprintsTable').append(row);
-        });
-      });
+      // ヘッダー行とフィルター行をスキップするため、開始インデックスを2に設定
+      for (let i = 2; i < rows.length; i++) {
+        const cells = rows[i].getElementsByTagName('td');
+        if (cells.length) {
+          let showRow = true;
 
-      // Handle launch button click
-      $('.launch-blueprint').on('click', function() {
-        const id = $(this).data('id');
-        const title = $(this).data('title');
-
-        $('#blueprintId').val(id);
-        $('#title').val(title);
-        $('#launchBlueprintModal').modal('show');
-      });
-
-      // Handle form submission
-      $('#launchButton').on('click', function() {
-        const blueprintId = $('#blueprintId').val();
-        const parentFolderId = $('#parentFolderId').val();
-        const title = $('#title').val();
-        const description = $('#description').val();
-
-        if (!parentFolderId || !title) {
-          alert('#{__("folder_blueprints.required_fields")}');
-          return;
-        }
-
-        // Prepare data for API call
-        const data = {
-          parentFolderId: parentFolderId,
-          title: title
-        };
-
-        if (description) {
-          data.description = description;
-        }
-
-        // Show loading state
-        $('#launchButton').prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> #{__("common.loading")}');
-
-        // Make API call
-        $.ajax({
-          url: `/api/folder-blueprints/${blueprintId}/launch`,
-          method: 'POST',
-          contentType: 'application/json',
-          data: JSON.stringify(data),
-          success: function(response) {
-            $('#launchBlueprintModal').modal('hide');
-
-            // Show result
-            let resultHtml = '<div class="alert alert-success">#{__("folder_blueprints.launch_success")}</div>';
-            resultHtml += '<p><strong>#{__("folder_blueprints.async_job_id")}:</strong> ' + response.data[0].id + '</p>';
-
-            $('#launchResultContent').html(resultHtml);
-            $('#launchResultModal').modal('show');
-          },
-          error: function(xhr) {
-            let errorMessage = '#{__("folder_blueprints.launch_error")}';
-
-            if (xhr.responseJSON && xhr.responseJSON.error) {
-              errorMessage += ': ' + xhr.responseJSON.error;
+          // 各カラムのフィルターを適用
+          for (let j = 0; j < filterValues.length; j++) {
+            if (filterValues[j] !== '' && cells[j]) {
+              const cellText = cells[j].textContent || cells[j].innerText;
+              if (cellText.toLowerCase().indexOf(filterValues[j].toLowerCase()) === -1) {
+                showRow = false;
+                break;
+              }
             }
-
-            $('#launchResultContent').html('<div class="alert alert-danger">' + errorMessage + '</div>');
-            $('#launchResultModal').modal('show');
-          },
-          complete: function() {
-            // Reset button state
-            $('#launchButton').prop('disabled', false).text('#{__("folder_blueprints.launch")}');
           }
-        });
+
+          // グローバル検索を適用
+          if (showRow && globalSearchValue !== '') {
+            showRow = false;
+            for (let j = 0; j < cells.length; j++) {
+              const cellText = cells[j].textContent || cells[j].innerText;
+              if (cellText.toLowerCase().indexOf(globalSearchValue.toLowerCase()) > -1) {
+                showRow = true;
+                break;
+              }
+            }
+          }
+
+          rows[i].style.display = showRow ? '' : 'none';
+        }
+      }
+    }
+
+    // グローバル検索機能
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+      globalSearchValue = this.value.toLowerCase();
+      filterTable();
+    });
+
+    // カラムフィルター機能
+    document.querySelectorAll('.column-filter').forEach(filter => {
+      filter.addEventListener('keyup', function() {
+        const column = parseInt(this.getAttribute('data-column'));
+        filterValues[column] = this.value;
+        filterTable();
       });
     });
+
+    // Sorting functionality
+    function sortTable(n) {
+      let table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+      table = document.getElementById('blueprintsTable');
+      switching = true;
+      dir = 'asc';
+
+      while (switching) {
+        switching = false;
+        rows = table.rows;
+
+        // ヘッダー行とフィルター行をスキップするため、開始インデックスを2に設定
+        for (i = 2; i < (rows.length - 1); i++) {
+          shouldSwitch = false;
+          x = rows[i].getElementsByTagName('td')[n];
+          y = rows[i + 1].getElementsByTagName('td')[n];
+
+          // 非表示の行はスキップ
+          if (rows[i].style.display === 'none' || rows[i + 1].style.display === 'none') {
+            continue;
+          }
+
+          if (dir === 'asc') {
+            if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          } else if (dir === 'desc') {
+            if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          }
+        }
+
+        if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+          switchcount++;
+        } else {
+          if (switchcount === 0 && dir === 'asc') {
+            dir = 'desc';
+            switching = true;
+          }
+        }
+      }
+    }extends layout
+
+block content
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1 #{__('folder_blueprints.title')}
+    .input-group.w-auto
+      input#searchInput.form-control(type="text", placeholder=__('folder_blueprints.search'))
+      button.btn.btn-outline-secondary(type="button")
+        i.bi.bi-search
+
+  if error
+    .alert.alert-danger= error
+  else
+    .card.shadow-sm
+      .card-body
+        .table-responsive
+          table.table.table-hover#blueprintsTable
+            thead
+              tr
+                th(onclick="sortTable(0)")
+                  | #{__('folder_blueprints.name')}
+                  i.bi.bi-arrow-down-up
+                th(onclick="sortTable(1)")
+                  | #{__('folder_blueprints.id')}
+                  i.bi.bi-arrow-down-up
+                th(onclick="sortTable(2)")
+                  | #{__('folder_blueprints.scope')}
+                  i.bi.bi-arrow-down-up
+              tr.filters
+                th
+                  input.form-control.form-control-sm.column-filter(type="text", data-column="0", placeholder=__('folder_blueprints.filter_name'))
+                th
+                  input.form-control.form-control-sm.column-filter(type="text", data-column="1", placeholder=__('folder_blueprints.filter_id'))
+                th
+                  input.form-control.form-control-sm.column-filter(type="text", data-column="2", placeholder=__('folder_blueprints.filter_scope'))
+            tbody
+              if folderBlueprints && folderBlueprints.length
+                each blueprint in folderBlueprints
+                  tr
+                    td= blueprint.title || blueprint.name
+                    td
+                      code= blueprint.id
+                    td= blueprint.scope || '-'
+              else
+                tr
+                  td.text-center(colspan="3") #{__('folder_blueprints.no_blueprints')}
+
+block scripts
+  script.
+    // フィルター状態を保持する配列
+    const filterValues = [
+      '', // 名前フィルター
+      '', // IDフィルター
+      ''  // スコープフィルター
+    ];
+
+    // 全体検索の値
+    let globalSearchValue = '';
+
+    // テーブルフィルタリング関数
+    function filterTable() {
+      const table = document.getElementById('blueprintsTable');
+      const rows = table.getElementsByTagName('tr');
+      const hasFilters = filterValues.some(filter => filter !== '');
+
+      // ヘッダー行とフィルター行をスキップするため、開始インデックスを2に設定
+      for (let i = 2; i < rows.length; i++) {
+        const cells = rows[i].getElementsByTagName('td');
+        if (cells.length) {
+          let showRow = true;
+
+          // 各カラムのフィルターを適用
+          for (let j = 0; j < filterValues.length; j++) {
+            if (filterValues[j] !== '' && cells[j]) {
+              const cellText = cells[j].textContent || cells[j].innerText;
+              if (cellText.toLowerCase().indexOf(filterValues[j].toLowerCase()) === -1) {
+                showRow = false;
+                break;
+              }
+            }
+          }
+
+          // グローバル検索を適用
+          if (showRow && globalSearchValue !== '') {
+            showRow = false;
+            for (let j = 0; j < cells.length; j++) {
+              const cellText = cells[j].textContent || cells[j].innerText;
+              if (cellText.toLowerCase().indexOf(globalSearchValue.toLowerCase()) > -1) {
+                showRow = true;
+                break;
+              }
+            }
+          }
+
+          rows[i].style.display = showRow ? '' : 'none';
+        }
+      }
+    }
+
+    // グローバル検索機能
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+      globalSearchValue = this.value.toLowerCase();
+      filterTable();
+    });
+
+    // カラムフィルター機能
+    document.querySelectorAll('.column-filter').forEach(filter => {
+      filter.addEventListener('keyup', function() {
+        const column = parseInt(this.getAttribute('data-column'));
+        filterValues[column] = this.value;
+        filterTable();
+      });
+    });
+
+    // Sorting functionality
+    function sortTable(n) {
+      let table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+      table = document.getElementById('blueprintsTable');
+      switching = true;
+      dir = 'asc';
+
+      while (switching) {
+        switching = false;
+        rows = table.rows;
+
+        // ヘッダー行とフィルター行をスキップするため、開始インデックスを2に設定
+        for (i = 2; i < (rows.length - 1); i++) {
+          shouldSwitch = false;
+          x = rows[i].getElementsByTagName('td')[n];
+          y = rows[i + 1].getElementsByTagName('td')[n];
+
+          // 非表示の行はスキップ
+          if (rows[i].style.display === 'none' || rows[i + 1].style.display === 'none') {
+            continue;
+          }
+
+          if (dir === 'asc') {
+            if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          } else if (dir === 'desc') {
+            if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          }
+        }
+
+        if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+          switchcount++;
+        } else {
+          if (switchcount === 0 && dir === 'asc') {
+            dir = 'desc';
+            switching = true;
+          }
+        }
+      }
+    }
