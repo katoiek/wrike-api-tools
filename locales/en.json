@@ -108,9 +108,9 @@
     "name": "Name",
     "actions": "Actions",
     "search": "Search blueprints...",
-    "filter_name": "Filter by nane...",...
-    "filter_id": "Filtery ID......",
-    "filter_scope": "Filter by scspe......",
+    "filter_name": "Filter by name...",
+    "filter_id": "Filter by ID...",
+    "filter_scope": "Filter by scope...",
     "no_blueprints": "No folder blueprints found",
     "launch_modal_title": "Launch Folder Blueprint",
     "parent_folder": "Parent Folder ID",

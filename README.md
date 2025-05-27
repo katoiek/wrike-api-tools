@@ -72,6 +72,8 @@ npm run dev
 
 ### Recent Updates
 
+- Removed task blueprint functionality
+- Changed folder blueprint view to table display with sorting and filtering
 - Removed task management functionality
 - Added user group management with hierarchical view
 - Improved API performance and reliability
@@ -153,6 +155,8 @@ npm run dev
 
 ### 最近の更新
 
+- タスクブループリント機能を削除
+- フォルダブループリントをテーブル表示に変更（ソート・フィルタ機能付き）
 - タスク管理機能を削除
 - ユーザーグループ管理と階層表示機能を追加
 - API性能と信頼性の向上
