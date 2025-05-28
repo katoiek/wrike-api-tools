@@ -26,8 +26,17 @@ block content
             table.table.table-hover#blueprintsTable
               thead
                 tr
-                  th #{__('folder_blueprints.title')}
-                  th #{__('folder_blueprints.id')}
+                  th(onclick="sortTable(0)")
+                    | #{__('folder_blueprints.title')}
+                    i.bi.bi-arrow-down-up
+                  th(onclick="sortTable(1)")
+                    | #{__('folder_blueprints.id')}
+                    i.bi.bi-arrow-down-up
+                tr.filters
+                  th
+                    input.form-control.form-control-sm.column-filter(type="text", data-column="0", placeholder=__('folder_blueprints.filter_by_title'))
+                  th
+                    input.form-control.form-control-sm.column-filter(type="text", data-column="1", placeholder=__('folder_blueprints.filter_by_id'))
               tbody
                 - const rootNode = folderBlueprints.find(bp => bp.scope === 'BpRoot')
                 if rootNode
@@ -153,8 +162,15 @@ block scripts
       // 検索結果がない場合のメッセージ表示
       if (!foundResults) {
         noResults.classList.remove('d-none');
+        blueprintsTable.classList.add('d-none');
       } else {
         noResults.classList.add('d-none');
+        blueprintsTable.classList.remove('d-none');
+      }
+
+      // フィルターが適用されている場合は、フィルターも適用
+      if (filterValues.some(filter => filter !== '')) {
+        filterTable();
       }
     });
 
@@ -297,6 +313,122 @@ block scripts
       });
     });
 
+    // フィルター状態を保持する配列
+    const filterValues = [
+      '', // タイトルフィルター
+      ''  // IDフィルター
+    ];
+
+    // カラムフィルター機能
+    document.querySelectorAll('.column-filter').forEach(filter => {
+      filter.addEventListener('keyup', function() {
+        const column = parseInt(this.getAttribute('data-column'));
+        filterValues[column] = this.value;
+        filterTable();
+      });
+    });
+
+    // テーブルフィルタリング関数
+    function filterTable() {
+      const table = document.getElementById('blueprintsTable');
+      const rows = table.getElementsByTagName('tr');
+      const hasFilters = filterValues.some(filter => filter !== '');
+      const hasGlobalSearch = searchInput.value.trim() !== '';
+
+      // ヘッダー行とフィルター行をスキップするため、開始インデックスを2に設定
+      for (let i = 2; i < rows.length; i++) {
+        const cells = rows[i].getElementsByTagName('td');
+        if (cells.length) {
+          let showRow = true;
+
+          // 各カラムのフィルターを適用
+          for (let j = 0; j < filterValues.length; j++) {
+            if (filterValues[j] !== '' && cells[j]) {
+              const cellText = cells[j].textContent || cells[j].innerText;
+              if (cellText.toLowerCase().indexOf(filterValues[j].toLowerCase()) === -1) {
+                showRow = false;
+                break;
+              }
+            }
+          }
+
+          // グローバル検索を適用（すでに適用されている場合はスキップ）
+          if (!hasGlobalSearch) {
+            rows[i].style.display = showRow ? '' : 'none';
+          }
+        }
+      }
+    }
+
+    // 検索機能とフィルター機能の連携
+    const originalSearchHandler = searchInput.onkeyup;
+    searchInput.onkeyup = function(e) {
+      // 元の検索ハンドラを呼び出す
+      if (originalSearchHandler) {
+        originalSearchHandler.call(this, e);
+      }
+
+      // フィルターも適用
+      if (filterValues.some(filter => filter !== '')) {
+        filterTable();
+      }
+    };
+
+    // Sorting functionality
+    function sortTable(n) {
+      let table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+      table = document.getElementById('blueprintsTable');
+      switching = true;
+      dir = 'asc';
+
+      while (switching) {
+        switching = false;
+        rows = table.rows;
+
+        // ヘッダー行とフィルター行をスキップするため、開始インデックスを2に設定
+        for (i = 2; i < (rows.length - 1); i++) {
+          shouldSwitch = false;
+          x = rows[i].getElementsByTagName('td')[n];
+          y = rows[i + 1].getElementsByTagName('td')[n];
+
+          // 非表示の行はスキップ
+          if (rows[i].style.display === 'none' || rows[i + 1].style.display === 'none') {
+            continue;
+          }
+
+          // レベルが異なる場合はスキップ（階層構造を維持するため）
+          const levelX = parseInt(rows[i].getAttribute('data-level') || '0');
+          const levelY = parseInt(rows[i + 1].getAttribute('data-level') || '0');
+          if (levelX !== levelY) {
+            continue;
+          }
+
+          if (dir === 'asc') {
+            if (x.textContent.toLowerCase() > y.textContent.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          } else if (dir === 'desc') {
+            if (x.textContent.toLowerCase() < y.textContent.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          }
+        }
+
+        if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+          switchcount++;
+        } else {
+          if (switchcount === 0 && dir === 'asc') {
+            dir = 'desc';
+            switching = true;
+          }
+        }
+      }
+    }
+
     // インラインスタイルを追加
     const styleElement = document.createElement('style');
     styleElement.textContent = `
@@ -328,6 +460,18 @@ block scripts
 
     code {
       font-size: 0.8rem;
+    }
+
+    th[onclick] {
+      cursor: pointer;
+    }
+
+    th[onclick]:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .filters input {
+      margin-top: 5px;
     }
     `;
     document.head.appendChild(styleElement);
