@@ -13,149 +13,275 @@ block content
   else
     .card.shadow-sm
       .card-body
-        .table-responsive
-          table.table.table-hover#blueprintsTable
-            thead
-              tr
-                th(onclick="sortTable(0)")
-                  | #{__('folder_blueprints.name')}
-                  i.bi.bi-arrow-down-up
-                th(onclick="sortTable(1)")
-                  | #{__('folder_blueprints.id')}
-                  i.bi.bi-arrow-down-up
-                th(onclick="sortTable(2)")
-                  | #{__('folder_blueprints.scope')}
-                  i.bi.bi-arrow-down-up
-              tr.filters
-                th
-                  input.form-control.form-control-sm.column-filter(type="text", data-column="0", placeholder=__('folder_blueprints.filter_name'))
-                th
-                  input.form-control.form-control-sm.column-filter(type="text", data-column="1", placeholder=__('folder_blueprints.filter_id'))
-                th
-                  input.form-control.form-control-sm.column-filter(type="text", data-column="2", placeholder=__('folder_blueprints.filter_scope'))
-            tbody
-              if folderBlueprints && folderBlueprints.length
-                each blueprint in folderBlueprints
-                  tr
-                    td= blueprint.title || blueprint.name
-                    td
-                      code= blueprint.id
-                    td= blueprint.scope || '-'
-              else
-                tr
-                  td.text-center(colspan="3") #{__('folder_blueprints.no_blueprints')}
+        .mb-3
+          button.btn.btn-sm.btn-outline-secondary.me-2#expandAllBtn
+            i.bi.bi-arrows-expand.me-1
+            | #{__('folder_blueprints.expand_all')}
+          button.btn.btn-sm.btn-outline-secondary#collapseAllBtn
+            i.bi.bi-arrows-collapse.me-1
+            | #{__('folder_blueprints.collapse_all')}
+
+        if folderBlueprints && folderBlueprints.length
+          .blueprint-tree
+            - const rootNode = folderBlueprints.find(bp => bp.scope === 'BpRoot')
+            if rootNode
+              - const blueprintMap = {}
+              each blueprint in folderBlueprints
+                - blueprintMap[blueprint.id] = blueprint
+
+              .blueprint-node.root-node
+                .blueprint-header.d-flex.align-items-center(data-id=rootNode.id)
+                  i.bi.bi-folder2.me-2.text-primary
+                  span.blueprint-title.fw-bold= rootNode.title
+                  span.badge.bg-primary.ms-2= rootNode.scope
+                  span.ms-2.text-muted
+                    code= rootNode.id
+
+                if rootNode.childIds && rootNode.childIds.length
+                  .blueprint-children.ms-4
+                    each childId in rootNode.childIds
+                      - const childNode = blueprintMap[childId]
+                      if childNode
+                        +renderBlueprintNode(childNode, blueprintMap, 1)
+
+          //- 検索結果が見つからない場合のメッセージ
+          .no-results.d-none.text-center.mt-3
+            p.text-muted #{__('folder_blueprints.no_search_results')}
+        else
+          .text-center
+            p.text-muted #{__('folder_blueprints.no_blueprints')}
+
+        //- テーブル表示（検索用に非表示で保持）
+        table.d-none#blueprintsTable
+          tbody
+            if folderBlueprints && folderBlueprints.length
+              each blueprint in folderBlueprints
+                tr(data-id=blueprint.id)
+                  td= blueprint.title || blueprint.name
+                  td= blueprint.id
+                  td= blueprint.scope || '-'
+
+//- ブループリントノードを再帰的にレンダリングするミックスイン
+mixin renderBlueprintNode(node, blueprintMap, level)
+  .blueprint-node(data-level=level)
+    .blueprint-header.d-flex.align-items-center(data-id=node.id)
+      if node.childIds && node.childIds.length
+        i.bi.bi-caret-right-fill.me-2.toggle-icon(role="button")
+      else
+        i.bi.bi-dash.me-2.text-muted
+      i.bi.bi-folder2.me-2.text-primary
+      span.blueprint-title= node.title
+      if node.scope
+        span.badge.bg-secondary.ms-2= node.scope
+      span.ms-2.text-muted
+        code= node.id
+
+    if node.childIds && node.childIds.length
+      .blueprint-children.ms-4.d-none
+        each childId in node.childIds
+          - const childNode = blueprintMap[childId]
+          if childNode
+            +renderBlueprintNode(childNode, blueprintMap, level + 1)
 
 block scripts
   script.
-    // フィルター状態を保持する配列
-    const filterValues = [
-      '', // 名前フィルター
-      '', // IDフィルター
-      ''  // スコープフィルター
-    ];
+    // 検索機能
+    const searchInput = document.getElementById('searchInput');
+    const blueprintTree = document.querySelector('.blueprint-tree');
+    const noResults = document.querySelector('.no-results');
+    const blueprintNodes = document.querySelectorAll('.blueprint-node');
+    const blueprintHeaders = document.querySelectorAll('.blueprint-header');
+    const hiddenTable = document.getElementById('blueprintsTable');
+    const tableRows = hiddenTable ? hiddenTable.querySelectorAll('tr') : [];
 
-    // 全体検索の値
-    let globalSearchValue = '';
+    // 検索機能
+    searchInput.addEventListener('keyup', function() {
+      const searchTerm = this.value.toLowerCase().trim();
+      let foundResults = false;
 
-    // テーブルフィルタリング関数
-    function filterTable() {
-      const table = document.getElementById('blueprintsTable');
-      const rows = table.getElementsByTagName('tr');
-      const hasFilters = filterValues.some(filter => filter !== '');
+      if (searchTerm === '') {
+        // 検索条件がない場合は全て表示
+        blueprintNodes.forEach(node => {
+          node.classList.remove('d-none');
+          node.classList.remove('search-match');
+        });
 
-      // ヘッダー行とフィルター行をスキップするため、開始インデックスを2に設定
-      for (let i = 2; i < rows.length; i++) {
-        const cells = rows[i].getElementsByTagName('td');
-        if (cells.length) {
-          let showRow = true;
+        // ルートノード以外の子ノードは非表示に戻す
+        document.querySelectorAll('.blueprint-children').forEach(child => {
+          if (!child.closest('.root-node')) {
+            child.classList.add('d-none');
+          }
+        });
 
-          // 各カラムのフィルターを適用
-          for (let j = 0; j < filterValues.length; j++) {
-            if (filterValues[j] !== '' && cells[j]) {
-              const cellText = cells[j].textContent || cells[j].innerText;
-              if (cellText.toLowerCase().indexOf(filterValues[j].toLowerCase()) === -1) {
-                showRow = false;
-                break;
+        noResults.classList.add('d-none');
+        foundResults = true;
+      } else {
+        // 検索条件がある場合
+        const matchingIds = new Set();
+
+        // テーブルの行から検索（非表示のテーブルを使用）
+        tableRows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          if (text.includes(searchTerm)) {
+            matchingIds.add(row.getAttribute('data-id'));
+          }
+        });
+
+        // 各ノードを検索条件に基づいて表示/非表示
+        blueprintNodes.forEach(node => {
+          const header = node.querySelector('.blueprint-header');
+          const nodeId = header.getAttribute('data-id');
+
+          if (matchingIds.has(nodeId)) {
+            node.classList.remove('d-none');
+            node.classList.add('search-match');
+
+            // 親ノードも全て表示
+            let parent = node.parentElement;
+            while (parent) {
+              if (parent.classList.contains('blueprint-children')) {
+                parent.classList.remove('d-none');
+                const parentNode = parent.closest('.blueprint-node');
+                if (parentNode) {
+                  parentNode.classList.remove('d-none');
+                }
               }
+              parent = parent.parentElement;
+            }
+
+            foundResults = true;
+          } else {
+            // 検索条件に一致しないノードは、子ノードが一致する場合のみ表示
+            const hasMatchingChild = node.querySelector('.search-match');
+            if (!hasMatchingChild) {
+              node.classList.add('d-none');
             }
           }
-
-          // グローバル検索を適用
-          if (showRow && globalSearchValue !== '') {
-            showRow = false;
-            for (let j = 0; j < cells.length; j++) {
-              const cellText = cells[j].textContent || cells[j].innerText;
-              if (cellText.toLowerCase().indexOf(globalSearchValue.toLowerCase()) > -1) {
-                showRow = true;
-                break;
-              }
-            }
-          }
-
-          rows[i].style.display = showRow ? '' : 'none';
-        }
+        });
       }
-    }
 
-    // グローバル検索機能
-    document.getElementById('searchInput').addEventListener('keyup', function() {
-      globalSearchValue = this.value.toLowerCase();
-      filterTable();
+      // 検索結果がない場合のメッセージ表示
+      if (!foundResults) {
+        noResults.classList.remove('d-none');
+      } else {
+        noResults.classList.add('d-none');
+      }
     });
 
-    // カラムフィルター機能
-    document.querySelectorAll('.column-filter').forEach(filter => {
-      filter.addEventListener('keyup', function() {
-        const column = parseInt(this.getAttribute('data-column'));
-        filterValues[column] = this.value;
-        filterTable();
+    // フォルダの展開/折りたたみ機能
+    // DOMが完全に読み込まれた後に実行
+    document.addEventListener('DOMContentLoaded', function() {
+      // すべてのブループリントヘッダーにイベントリスナーを追加
+      document.querySelectorAll('.blueprint-header').forEach(header => {
+        // 子要素を持つノードのみ処理
+        const node = header.closest('.blueprint-node');
+        const children = node.querySelector('.blueprint-children');
+
+        if (children) {
+          // ヘッダー全体をクリック可能にする
+          header.style.cursor = 'pointer';
+
+          // ヘッダーのクリックイベント
+          header.addEventListener('click', function(e) {
+            // コードやバッジをクリックした場合は展開しない
+            if (e.target.tagName === 'CODE' || e.target.classList.contains('badge')) {
+              return;
+            }
+
+            // 子要素の表示/非表示を切り替え
+            children.classList.toggle('d-none');
+            console.log('Toggled children visibility:', !children.classList.contains('d-none'));
+
+            // トグルアイコンの切り替え
+            const icon = header.querySelector('.toggle-icon');
+            if (icon) {
+              icon.classList.toggle('bi-caret-right-fill');
+              icon.classList.toggle('bi-caret-down-fill');
+            }
+          });
+
+          // トグルアイコンのクリックイベント
+          const toggleIcon = header.querySelector('.toggle-icon');
+          if (toggleIcon) {
+            toggleIcon.addEventListener('click', function(e) {
+              e.stopPropagation(); // イベントの伝播を停止
+
+              // 子要素の表示/非表示を切り替え
+              children.classList.toggle('d-none');
+              console.log('Toggled children visibility (icon):', !children.classList.contains('d-none'));
+
+              // アイコンの切り替え
+              this.classList.toggle('bi-caret-right-fill');
+              this.classList.toggle('bi-caret-down-fill');
+            });
+          }
+        }
       });
     });
 
-    // Sorting functionality
-    function sortTable(n) {
-      let table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
-      table = document.getElementById('blueprintsTable');
-      switching = true;
-      dir = 'asc';
+    // すべて展開ボタン
+    document.getElementById('expandAllBtn').addEventListener('click', function() {
+      document.querySelectorAll('.blueprint-children').forEach(child => {
+        child.classList.remove('d-none');
+      });
 
-      while (switching) {
-        switching = false;
-        rows = table.rows;
+      document.querySelectorAll('.toggle-icon').forEach(icon => {
+        icon.classList.remove('bi-caret-right-fill');
+        icon.classList.add('bi-caret-down-fill');
+      });
+    });
 
-        // ヘッダー行とフィルター行をスキップするため、開始インデックスを2に設定
-        for (i = 2; i < (rows.length - 1); i++) {
-          shouldSwitch = false;
-          x = rows[i].getElementsByTagName('td')[n];
-          y = rows[i + 1].getElementsByTagName('td')[n];
-
-          // 非表示の行はスキップ
-          if (rows[i].style.display === 'none' || rows[i + 1].style.display === 'none') {
-            continue;
-          }
-
-          if (dir === 'asc') {
-            if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-              shouldSwitch = true;
-              break;
-            }
-          } else if (dir === 'desc') {
-            if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-              shouldSwitch = true;
-              break;
-            }
-          }
+    // すべて折りたたむボタン
+    document.getElementById('collapseAllBtn').addEventListener('click', function() {
+      // ルートノードの直下の子ノードは表示したままにする
+      document.querySelectorAll('.blueprint-children').forEach(child => {
+        if (!child.closest('.root-node')) {
+          child.classList.add('d-none');
         }
+      });
 
-        if (shouldSwitch) {
-          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-          switching = true;
-          switchcount++;
-        } else {
-          if (switchcount === 0 && dir === 'asc') {
-            dir = 'desc';
-            switching = true;
-          }
-        }
-      }
+      document.querySelectorAll('.toggle-icon').forEach(icon => {
+        icon.classList.add('bi-caret-right-fill');
+        icon.classList.remove('bi-caret-down-fill');
+      });
+    });
+
+    // インラインスタイルを追加
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+    .blueprint-tree {
+      font-size: 0.95rem;
     }
+
+    .blueprint-node {
+      margin-bottom: 0.5rem;
+    }
+
+    .blueprint-header {
+      padding: 0.5rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+
+    .blueprint-header:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .toggle-icon {
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .blueprint-title {
+      font-weight: 500;
+    }
+
+    .search-match .blueprint-header {
+      background-color: rgba(255, 243, 205, 0.5);
+    }
+
+    code {
+      font-size: 0.8rem;
+    }
+    `;
+    document.head.appendChild(styleElement);
