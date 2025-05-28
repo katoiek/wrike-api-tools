@@ -33,7 +33,6 @@ block content
                 .blueprint-header.d-flex.align-items-center(data-id=rootNode.id)
                   i.bi.bi-folder2.me-2.text-primary
                   span.blueprint-title.fw-bold= rootNode.title
-                  span.badge.bg-primary.ms-2= rootNode.scope
                   span.ms-2.text-muted
                     code= rootNode.id
 
@@ -59,7 +58,6 @@ block content
                 tr(data-id=blueprint.id)
                   td= blueprint.title || blueprint.name
                   td= blueprint.id
-                  td= blueprint.scope || '-'
 
 //- ブループリントノードを再帰的にレンダリングするミックスイン
 mixin renderBlueprintNode(node, blueprintMap, level)
@@ -71,8 +69,6 @@ mixin renderBlueprintNode(node, blueprintMap, level)
         i.bi.bi-dash.me-2.text-muted
       i.bi.bi-folder2.me-2.text-primary
       span.blueprint-title= node.title
-      if node.scope
-        span.badge.bg-secondary.ms-2= node.scope
       span.ms-2.text-muted
         code= node.id
 
