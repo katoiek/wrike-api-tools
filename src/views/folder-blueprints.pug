@@ -169,13 +169,18 @@ block scripts
     });
 
     // フォルダの展開/折りたたみ機能
-    // DOMが完全に読み込まれた後に実行
-    document.addEventListener('DOMContentLoaded', function() {
+    // 即時実行関数を使用して、すぐに実行されるようにする
+    (function setupFolderToggle() {
+      console.log('Setting up folder toggle functionality');
+
       // すべてのブループリントヘッダーにイベントリスナーを追加
-      document.querySelectorAll('.blueprint-header').forEach(header => {
+      const headers = document.querySelectorAll('.blueprint-header');
+      console.log('Found blueprint headers:', headers.length);
+
+      headers.forEach(header => {
         // 子要素を持つノードのみ処理
         const node = header.closest('.blueprint-node');
-        const children = node.querySelector('.blueprint-children');
+        const children = node ? node.querySelector('.blueprint-children') : null;
 
         if (children) {
           // ヘッダー全体をクリック可能にする
@@ -217,14 +222,18 @@ block scripts
           }
         }
       });
-    });
+    })();
 
     // すべて展開ボタン
     document.getElementById('expandAllBtn').addEventListener('click', function() {
+      console.log('Expand all button clicked');
+
+      // すべての子ノードを表示
       document.querySelectorAll('.blueprint-children').forEach(child => {
         child.classList.remove('d-none');
       });
 
+      // すべてのトグルアイコンを下向きに変更
       document.querySelectorAll('.toggle-icon').forEach(icon => {
         icon.classList.remove('bi-caret-right-fill');
         icon.classList.add('bi-caret-down-fill');
@@ -233,13 +242,27 @@ block scripts
 
     // すべて折りたたむボタン
     document.getElementById('collapseAllBtn').addEventListener('click', function() {
-      // ルートノードの直下の子ノードは表示したままにする
-      document.querySelectorAll('.blueprint-children').forEach(child => {
-        if (!child.closest('.root-node')) {
+      console.log('Collapse all button clicked');
+
+      // すべての子ノードを取得
+      const allChildren = document.querySelectorAll('.blueprint-children');
+      console.log('Total children nodes:', allChildren.length);
+
+      // ルートノードの直下の子ノードを特定
+      const rootNodeChildren = document.querySelector('.root-node > .blueprint-children');
+
+      // すべての子ノードを非表示にする（ルートノードの直下の子ノードは除く）
+      allChildren.forEach(child => {
+        // ルートノードの直下の子ノードでない場合は非表示にする
+        if (child !== rootNodeChildren) {
           child.classList.add('d-none');
+          console.log('Hiding child node:', child);
+        } else {
+          console.log('Keeping root child visible:', child);
         }
       });
 
+      // すべてのトグルアイコンを右向きに変更
       document.querySelectorAll('.toggle-icon').forEach(icon => {
         icon.classList.add('bi-caret-right-fill');
         icon.classList.remove('bi-caret-down-fill');
