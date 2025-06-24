@@ -415,6 +415,67 @@ router.post('/folder-blueprints/:blueprintId/launch', async (req, res) => {
   }
 });
 
+/**
+ * Get custom fields
+ */
+router.get('/custom-fields', async (req, res) => {
+  try {
+    console.log('API: Custom Fields route called');
+
+    // Get page parameters
+    const page = parseInt(req.query.page as string) || 1;
+    const pageTokens: { [key: number]: string } = req.session.customFieldsPageTokens || {};
+
+    // Set up API request parameters
+    const params: any = {};
+    if (page > 1 && pageTokens[page]) {
+      params.nextPageToken = pageTokens[page];
+    }
+
+    console.log('API: Calling getCustomFields with params:', params);
+    const customFieldsResult = await wrikeApi.getCustomFields(params);
+    console.log('API: Custom fields result data length:', customFieldsResult.data.length);
+
+    // Get spaces to map space IDs to names
+    const spacesResult = await wrikeApi.getSpaces();
+    const spaceMap = new Map();
+    for (const space of spacesResult.data) {
+      spaceMap.set(space.id, space.title || space.name);
+    }
+
+    // Process custom fields data
+    const customFields = customFieldsResult.data.map(field => {
+      // Add space name if spaceId exists
+      if (field.spaceId && spaceMap.has(field.spaceId)) {
+        field.spaceName = spaceMap.get(field.spaceId);
+      } else {
+        field.spaceName = req.session.userInfo?.locale === 'ja' ? 'アカウント' : 'Account';
+      }
+      return field;
+    });
+
+    // Save next page token if available
+    if (customFieldsResult.nextPageToken) {
+      if (!req.session.customFieldsPageTokens) {
+        req.session.customFieldsPageTokens = {};
+      }
+      req.session.customFieldsPageTokens[page + 1] = customFieldsResult.nextPageToken;
+    }
+
+    // Calculate total pages (estimated)
+    const totalPages = Math.max(page, customFieldsResult.nextPageToken ? page + 1 : page);
+
+    res.json({
+      customFields,
+      nextPageToken: customFieldsResult.nextPageToken,
+      currentPage: page,
+      totalPages
+    });
+  } catch (error: any) {
+    console.error('API: Error getting custom fields:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 
 export default router;

@@ -1,0 +1,87 @@
+こちらのリポジトリでspacesはWrikeのAPIを使ったスペース、スペースID、アクセスタイプ、パーマリンクを表示する機能を持っています。
+これと同じようにカスタムフィールド一覧ページを作ってください。
+API リファレンスはこちら
+https://developers.wrike.com/api/v4/custom-fields/
+
+サンプルJsonはこちら。　　　title,ID, type, Space名　と、ソート、フィルタも同様に実装してください。
+スペースIDがない場合はアカウントとしてください。スペースIDがある場合はスペース名を表示してください。
+{
+    "kind": "customfields",
+    "data": [
+        {
+            "id": "IEAC2GFMJUAGM32K",
+            "accountId": "IEAC2GFM",
+            "title": "区分",
+            "type": "DropDown",
+            "spaceId": "IEAC2GFMI5GHCBSB",
+            "sharedIds": [],
+            "sharing": {},
+            "settings": {
+                "inheritanceType": "All",
+                "applicableEntityTypes": [
+                    "WorkItem"
+                ],
+                "values": [
+                    "新規開発",
+                    "改修"
+                ],
+                "options": [
+                    {
+                        "value": "新規開発",
+                        "color": "Blue"
+                    },
+                    {
+                        "value": "改修",
+                        "color": "Green"
+                    }
+                ],
+                "optionColorsEnabled": true,
+                "allowOtherValues": false,
+                "readOnly": false
+            }
+        },
+        {
+            "id": "IEAC2GFMJUAGM32L",
+            "accountId": "IEAC2GFM",
+            "title": "ツール",
+            "type": "Multiple",
+            "spaceId": "IEAC2GFMI5GHCBSB",
+            "sharedIds": [],
+            "sharing": {},
+            "settings": {
+                "inheritanceType": "All",
+                "applicableEntityTypes": [
+                    "WorkItem"
+                ],
+                "values": [
+                    "RPA",
+                    "GAS・マクロ",
+                    "AI",
+                    "汎用ツール横展開"
+                ],
+                "options": [
+                    {
+                        "value": "RPA",
+                        "color": "Purple"
+                    },
+                    {
+                        "value": "GAS・マクロ",
+                        "color": "Blue"
+                    },
+                    {
+                        "value": "AI",
+                        "color": "Green"
+                    },
+                    {
+                        "value": "汎用ツール横展開",
+                        "color": "Orange"
+                    }
+                ],
+                "optionColorsEnabled": true,
+                "allowOtherValues": false,
+                "readOnly": false
+            }
+        	}
+				}
+		]
+}

@@ -12,6 +12,7 @@
     "blueprints": "Blueprints",
     "folderBlueprints": "Folder Blueprints",
     "taskBlueprints": "Task Blueprints",
+    "customFields": "Custom Fields",
     "logout": "Logout"
   },
   "login": {
@@ -90,6 +91,10 @@
     "backToDashboard": "Back to Dashboard",
     "language": "Language"
   },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next"
+  },
   "error": {
     "title": "Error",
     "message": "An internal server error occurred",
@@ -143,5 +148,23 @@
     "launch_success": "Blueprint launched successfully",
     "launch_error": "Failed to launch blueprint",
     "async_job_id": "Async Job ID"
+  },
+  "customFields": {
+    "title": "Custom Fields",
+    "description": "View and manage custom fields in your Wrike account",
+    "id": "ID",
+    "type": "Type",
+    "space": "Space",
+    "account": "Account",
+    "noFields": "No custom fields found",
+    "searchPlaceholder": "Search by title or ID...",
+    "allTypes": "All Types",
+    "allSpaces": "All Spaces",
+    "sortByTitle": "Sort by Title",
+    "sortByType": "Sort by Type",
+    "sortBySpace": "Sort by Space",
+    "sortAsc": "Ascending",
+    "sortDesc": "Descending",
+    "error": "Failed to load custom fields"
   }
 }

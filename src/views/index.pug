@@ -67,6 +67,18 @@ block content
           .card-footer.bg-white.border-0
             a.btn.btn-sm.btn-outline-primary(href="/folder-blueprints") #{__('dashboard.viewDetails')}
 
+      .col-md-4.mb-4
+        .card.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-start
+              div
+                h5.card-title #{__('nav.customFields')}
+                h2.display-6 #{stats && stats.customFields ? stats.customFields : 0}
+              .icon-bg.bg-danger.text-white
+                i.bi.bi-list-check.fs-1
+          .card-footer.bg-white.border-0
+            a.btn.btn-sm.btn-outline-primary(href="/custom-fields") #{__('dashboard.viewDetails')}
+
 block scripts
   style.
     .icon-bg {

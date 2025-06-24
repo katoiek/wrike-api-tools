@@ -7,8 +7,6 @@ declare module 'express-session' {
     spacePageTokens?: { [key: number]: string };
     folderPageTokens?: { [key: number]: string };
     taskPageTokens?: { [key: number]: string };
-    spacePageTokens?: { [key: number]: string };
-    folderPageTokens?: { [key: number]: string };
-    taskPageTokens?: { [key: number]: string };
+    customFieldsPageTokens?: { [key: number]: string };
   }
 }

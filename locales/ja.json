@@ -12,6 +12,7 @@
     "blueprints": "ブループリント",
     "folderBlueprints": "フォルダブループリント",
     "taskBlueprints": "タスクブループリント",
+    "customFields": "カスタムフィールド",
     "logout": "ログアウト"
   },
   "login": {
@@ -90,6 +91,10 @@
     "backToDashboard": "ダッシュボードに戻る",
     "language": "言語"
   },
+  "pagination": {
+    "previous": "前へ",
+    "next": "次へ"
+  },
   "error": {
     "title": "エラー",
     "message": "内部サーバーエラーが発生しました",
@@ -143,5 +148,23 @@
     "launch_success": "ブループリントの実行に成功しました",
     "launch_error": "ブループリントの実行に失敗しました",
     "async_job_id": "非同期ジョブID"
+  },
+  "customFields": {
+    "title": "カスタムフィールド",
+    "description": "Wrikeアカウントのカスタムフィールドを表示・管理します",
+    "id": "ID",
+    "type": "タイプ",
+    "space": "スペース",
+    "account": "アカウント",
+    "noFields": "カスタムフィールドが見つかりません",
+    "searchPlaceholder": "タイトルまたはIDで検索...",
+    "allTypes": "すべてのタイプ",
+    "allSpaces": "すべてのスペース",
+    "sortByTitle": "タイトルで並べ替え",
+    "sortByType": "タイプで並べ替え",
+    "sortBySpace": "スペースで並べ替え",
+    "sortAsc": "昇順",
+    "sortDesc": "降順",
+    "error": "カスタムフィールドの読み込みに失敗しました"
   }
 }

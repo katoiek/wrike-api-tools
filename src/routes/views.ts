@@ -27,7 +27,8 @@ router.get('/', async (req, res) => {
       spaces: 0,
       userGroups: 0,
       users: 0,
-      folderBlueprints: 0
+      folderBlueprints: 0,
+      customFields: 0
     };
 
     // Get spaces count
@@ -74,6 +75,15 @@ router.get('/', async (req, res) => {
       console.error('Error getting folder blueprints count:', error);
     }
 
+    // Get custom fields count
+    try {
+      const customFieldsResult = await wrikeApi.getCustomFields();
+      if (customFieldsResult && customFieldsResult.data) {
+        stats.customFields = customFieldsResult.data.length;
+      }
+    } catch (error) {
+      console.error('Error getting custom fields count:', error);
+    }
 
 
     res.render('index', {
@@ -445,6 +455,30 @@ router.get('/user-groups', requireAuth, async (req, res) => {
       title: 'User Groups',
       user: req.session.userInfo,
       error: errorMessage
+    });
+  }
+});
+
+/**
+ * Custom Fields page
+ */
+router.get('/custom-fields', requireAuth, async (req, res) => {
+  try {
+    console.log('Custom Fields page route called');
+
+    // Get page parameter for initial state
+    const page = parseInt(req.query.page as string) || 1;
+
+    res.render('custom-fields', {
+      title: req.__('nav.customFields'),
+      user: req.session.userInfo,
+      currentPage: page
+    });
+  } catch (error) {
+    console.error('Error getting custom fields:', error);
+    res.render('error', {
+      title: req.__('error.title'),
+      message: req.__('customFields.error')
     });
   }
 });

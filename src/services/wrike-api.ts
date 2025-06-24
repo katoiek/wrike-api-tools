@@ -749,6 +749,30 @@ export class WrikeApiClient {
   }
 
   /**
+   * Get custom fields
+   * @param params Query parameters
+   * @returns List of custom fields
+   */
+  async getCustomFields(params: any = {}) {
+    console.log('Requesting custom fields with params:', params);
+    try {
+      const response = await this.request<WrikeApiResponse<any>>({
+        method: 'GET',
+        url: '/customfields',
+        params: params
+      });
+      console.log('Custom fields response data length:', response.data.length);
+      return response;
+    } catch (error: any) {
+      console.error('Error getting custom fields:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.status, error.response.data);
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Get folder blueprints for a specific space
    * @param spaceId The space ID
    * @param params Query parameters

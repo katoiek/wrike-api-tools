@@ -1,0 +1,415 @@
+extends layout
+
+block content
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1 #{__('customFields.title')}
+    .input-group.w-auto
+      input#searchInput.form-control(type="text", placeholder=getLocale() === 'en' ? 'Search custom fields...' : 'カスタムフィールドを検索...')
+      button.btn.btn-outline-secondary(type="button")
+        i.bi.bi-search
+
+  .card.shadow-sm
+    .card-body
+      .table-responsive
+        table.table.table-hover#customFieldsTable
+          thead
+            tr
+              th.sortable(onclick="sortTable(0)" data-column="0")
+                .d-flex.justify-content-between.align-items-center
+                  span #{__('customFields.title')}
+                  i.bi.bi-arrow-down-up.sort-icon
+              th.sortable(onclick="sortTable(1)" data-column="1")
+                .d-flex.justify-content-between.align-items-center
+                  span #{__('customFields.id')}
+                  i.bi.bi-arrow-down-up.sort-icon
+              th.sortable(onclick="sortTable(2)" data-column="2")
+                .d-flex.justify-content-between.align-items-center
+                  span #{__('customFields.type')}
+                  i.bi.bi-arrow-down-up.sort-icon
+              th.sortable(onclick="sortTable(3)" data-column="3")
+                .d-flex.justify-content-between.align-items-center
+                  span #{__('customFields.space')}
+                  i.bi.bi-arrow-down-up.sort-icon
+            tr.filters
+              th
+                input.form-control.form-control-sm.column-filter(type="text", data-column="0", placeholder=getLocale() === 'en' ? 'Filter by title...' : 'タイトルでフィルター...')
+              th
+                input.form-control.form-control-sm.column-filter(type="text", data-column="1", placeholder=getLocale() === 'en' ? 'Filter by ID...' : 'IDでフィルター...')
+              th
+                input.form-control.form-control-sm.column-filter(type="text", data-column="2", placeholder=getLocale() === 'en' ? 'Filter by type...' : 'タイプでフィルター...')
+              th
+                input.form-control.form-control-sm.column-filter(type="text", data-column="3", placeholder=getLocale() === 'en' ? 'Filter by space...' : 'スペースでフィルター...')
+          tbody#customFieldsTableBody
+            tr#loadingRow
+              td.text-center(colspan="4")
+                .spinner-border.text-primary.me-2(role="status")
+                  span.visually-hidden Loading...
+                span #{__('common.loading')}
+
+      #paginationContainer.d-flex.justify-content-between.align-items-center.mt-3.d-none
+        .text-muted #{getLocale() === 'en' ? 'Showing up to 100 custom fields per page' : '1ページあたり最大100カスタムフィールドを表示'}
+        nav(aria-label="Pagination")
+          ul#pagination.pagination
+
+block scripts
+  script.
+    // 初期設定
+    let currentPage = 1;
+    let totalPages = 1;
+    let nextPageToken = null;
+    let allCustomFields = [];
+    let displayedCustomFields = [];
+    let batchSize = 20; // 一度に表示する行数
+    let currentBatch = 0;
+
+    // フィルター状態を保持する配列
+    const filterValues = [
+      '', // タイトルフィルター
+      '', // IDフィルター
+      '', // タイプフィルター
+      ''  // スペースフィルター
+    ];
+
+    // 全体検索の値
+    let globalSearchValue = '';
+
+    // ページ読み込み時に実行
+    document.addEventListener('DOMContentLoaded', function() {
+      // URLからページ番号を取得
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('page')) {
+        currentPage = parseInt(urlParams.get('page'));
+      }
+
+      // カスタムフィールドデータを取得
+      fetchCustomFields(currentPage);
+
+      // グローバル検索機能
+      document.getElementById('searchInput').addEventListener('keyup', function() {
+        globalSearchValue = this.value.toLowerCase();
+        filterAndDisplayCustomFields();
+      });
+
+      // カラムフィルター機能
+      document.querySelectorAll('.column-filter').forEach(filter => {
+        filter.addEventListener('keyup', function() {
+          const column = parseInt(this.getAttribute('data-column'));
+          filterValues[column] = this.value;
+          filterAndDisplayCustomFields();
+        });
+      });
+
+      // スクロールイベントを監視して追加読み込み
+      window.addEventListener('scroll', function() {
+        if (isScrollNearBottom() && currentBatch * batchSize < displayedCustomFields.length) {
+          loadMoreRows();
+        }
+      });
+    });
+
+    // カスタムフィールドデータを取得する関数
+    function fetchCustomFields(page) {
+      fetch(`/api/custom-fields?page=${page}`)
+        .then(response => response.json())
+        .then(data => {
+          // データを保存
+          allCustomFields = data.customFields;
+          totalPages = data.totalPages;
+          nextPageToken = data.nextPageToken;
+
+          // フィルタリングして表示
+          filterAndDisplayCustomFields();
+
+          // ページネーションを更新
+          updatePagination();
+        })
+        .catch(error => {
+          console.error('Error fetching custom fields:', error);
+          document.getElementById('customFieldsTableBody').innerHTML = `
+            <tr>
+              <td colspan="4" class="text-center text-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                ${getLocale() === 'en' ? 'Error loading data' : 'データの読み込み中にエラーが発生しました'}
+              </td>
+            </tr>
+          `;
+        });
+    }
+
+    // フィルタリングして表示する関数
+    function filterAndDisplayCustomFields() {
+      // フィルタリング
+      displayedCustomFields = allCustomFields.filter(field => {
+        // グローバル検索
+        if (globalSearchValue !== '') {
+          const matchesGlobal =
+            field.title.toLowerCase().includes(globalSearchValue) ||
+            field.id.toLowerCase().includes(globalSearchValue) ||
+            field.type.toLowerCase().includes(globalSearchValue) ||
+            field.spaceName.toLowerCase().includes(globalSearchValue);
+
+          if (!matchesGlobal) return false;
+        }
+
+        // カラムフィルター
+        if (filterValues[0] !== '' && !field.title.toLowerCase().includes(filterValues[0].toLowerCase())) return false;
+        if (filterValues[1] !== '' && !field.id.toLowerCase().includes(filterValues[1].toLowerCase())) return false;
+        if (filterValues[2] !== '' && !field.type.toLowerCase().includes(filterValues[2].toLowerCase())) return false;
+        if (filterValues[3] !== '' && !field.spaceName.toLowerCase().includes(filterValues[3].toLowerCase())) return false;
+
+        return true;
+      });
+
+      // テーブルをクリア
+      const tableBody = document.getElementById('customFieldsTableBody');
+      tableBody.innerHTML = '';
+
+      // 結果がない場合
+      if (displayedCustomFields.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="4" class="text-center">
+              ${getLocale() === 'en' ? 'No custom fields found' : 'カスタムフィールドが見つかりません'}
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      // 最初のバッチを表示
+      currentBatch = 0;
+      loadMoreRows();
+    }
+
+    // 追加の行を読み込む関数
+    function loadMoreRows() {
+      const tableBody = document.getElementById('customFieldsTableBody');
+      const startIndex = currentBatch * batchSize;
+      const endIndex = Math.min(startIndex + batchSize, displayedCustomFields.length);
+
+      // 表示するフィールドの一時配列
+      const fieldsToDisplay = displayedCustomFields.slice(startIndex, endIndex);
+
+      // HTMLを構築
+      let html = '';
+      for (const field of fieldsToDisplay) {
+        html += `
+          <tr>
+            <td><strong>${field.title}</strong></td>
+            <td><code>${field.id}</code></td>
+            <td><span class="badge bg-info">${field.type}</span></td>
+            <td>${field.spaceName}</td>
+          </tr>
+        `;
+      }
+
+      // 既存の行に追加
+      if (currentBatch === 0) {
+        tableBody.innerHTML = html;
+      } else {
+        tableBody.insertAdjacentHTML('beforeend', html);
+      }
+
+      // バッチカウンターを増やす
+      currentBatch++;
+    }
+
+    // スクロールが下部に近いかチェックする関数
+    function isScrollNearBottom() {
+      return (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200;
+    }
+
+    // ページネーションを更新する関数
+    function updatePagination() {
+      if (totalPages <= 1) {
+        document.getElementById('paginationContainer').classList.add('d-none');
+        return;
+      }
+
+      document.getElementById('paginationContainer').classList.remove('d-none');
+
+      const paginationElement = document.getElementById('pagination');
+      let html = '';
+
+      // 前へボタン
+      if (currentPage > 1) {
+        html += `
+          <li class="page-item">
+            <a class="page-link" href="/custom-fields?page=${currentPage - 1}">
+              ${getLocale() === 'en' ? 'Previous' : '前へ'}
+            </a>
+          </li>
+        `;
+      } else {
+        html += `
+          <li class="page-item disabled">
+            <span class="page-link">${getLocale() === 'en' ? 'Previous' : '前へ'}</span>
+          </li>
+        `;
+      }
+
+      // ページ番号
+      const startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(startPage + 4, totalPages);
+
+      // 最初のページへのリンク
+      if (startPage > 1) {
+        html += `
+          <li class="page-item">
+            <a class="page-link" href="/custom-fields?page=1">1</a>
+          </li>
+        `;
+
+        if (startPage > 2) {
+          html += `
+            <li class="page-item disabled">
+              <span class="page-link">...</span>
+            </li>
+          `;
+        }
+      }
+
+      // ページ番号
+      for (let i = startPage; i <= endPage; i++) {
+        if (i === currentPage) {
+          html += `
+            <li class="page-item active">
+              <span class="page-link">${i}</span>
+            </li>
+          `;
+        } else {
+          html += `
+            <li class="page-item">
+              <a class="page-link" href="/custom-fields?page=${i}">${i}</a>
+            </li>
+          `;
+        }
+      }
+
+      // 最後のページへのリンク
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          html += `
+            <li class="page-item disabled">
+              <span class="page-link">...</span>
+            </li>
+          `;
+        }
+
+        html += `
+          <li class="page-item">
+            <a class="page-link" href="/custom-fields?page=${totalPages}">${totalPages}</a>
+          </li>
+        `;
+      }
+
+      // 次へボタン
+      if (nextPageToken) {
+        html += `
+          <li class="page-item">
+            <a class="page-link" href="/custom-fields?page=${currentPage + 1}">
+              ${getLocale() === 'en' ? 'Next' : '次へ'}
+            </a>
+          </li>
+        `;
+      } else {
+        html += `
+          <li class="page-item disabled">
+            <span class="page-link">${getLocale() === 'en' ? 'Next' : '次へ'}</span>
+          </li>
+        `;
+      }
+
+      paginationElement.innerHTML = html;
+    }
+
+    // ページ読み込み時にスタイルを追加
+    document.addEventListener('DOMContentLoaded', function() {
+      // 既存のイベントリスナーに追加
+
+      // ソートアイコンのスタイルを追加
+      const style = document.createElement('style');
+      style.textContent = `
+        .sortable {
+          cursor: pointer;
+        }
+        .sortable:hover {
+          background-color: rgba(0, 0, 0, 0.05);
+        }
+        .sort-icon {
+          opacity: 0.3;
+          transition: all 0.2s;
+        }
+        th[data-sort-dir] .sort-icon {
+          opacity: 1;
+        }
+        th[data-sort-dir="asc"] .sort-icon {
+          transform: rotate(180deg);
+        }
+        th[data-sort-dir="desc"] .sort-icon {
+          transform: rotate(0deg);
+        }
+      `;
+      document.head.appendChild(style);
+    });
+
+    // 現在のソート状態
+    let currentSortColumn = 0; // デフォルトはタイトル列
+    let currentSortDirection = 'asc'; // デフォルトは昇順
+
+    // Sorting functionality
+    function sortTable(columnIndex) {
+      // 同じ列をクリックした場合は方向を反転、違う列の場合は昇順から開始
+      if (columnIndex === currentSortColumn) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSortColumn = columnIndex;
+        currentSortDirection = 'asc';
+      }
+
+      // ソート状態を視覚的に表示
+      const headers = document.querySelectorAll('#customFieldsTable th.sortable');
+      headers.forEach(header => {
+        header.removeAttribute('data-sort-dir');
+      });
+
+      const currentHeader = document.querySelector(`#customFieldsTable th[data-column="${columnIndex}"]`);
+      currentHeader.setAttribute('data-sort-dir', currentSortDirection);
+
+      // データをソート
+      displayedCustomFields.sort((a, b) => {
+        let valueA, valueB;
+
+        switch (columnIndex) {
+          case 0: // タイトル
+            valueA = a.title.toLowerCase();
+            valueB = b.title.toLowerCase();
+            break;
+          case 1: // ID
+            valueA = a.id.toLowerCase();
+            valueB = b.id.toLowerCase();
+            break;
+          case 2: // タイプ
+            valueA = a.type.toLowerCase();
+            valueB = b.type.toLowerCase();
+            break;
+          case 3: // スペース
+            valueA = a.spaceName.toLowerCase();
+            valueB = b.spaceName.toLowerCase();
+            break;
+          default:
+            valueA = a.title.toLowerCase();
+            valueB = b.title.toLowerCase();
+        }
+
+        // ソート実行
+        const compareResult = valueA.localeCompare(valueB);
+        return currentSortDirection === 'asc' ? compareResult : -compareResult;
+      });
+
+      // 再表示
+      currentBatch = 0;
+      const tableBody = document.getElementById('customFieldsTableBody');
+      tableBody.innerHTML = '';
+      loadMoreRows();
+    }

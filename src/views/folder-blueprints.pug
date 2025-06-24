@@ -26,12 +26,14 @@ block content
             table.table.table-hover#blueprintsTable
               thead
                 tr
-                  th(onclick="sortTable(0)")
-                    | #{__('folder_blueprints.title')}
-                    i.bi.bi-arrow-down-up
-                  th(onclick="sortTable(1)")
-                    | #{__('folder_blueprints.id')}
-                    i.bi.bi-arrow-down-up
+                  th.sortable(onclick="sortTable(0)" data-column="0")
+                    .d-flex.justify-content-between.align-items-center
+                      span #{__('folder_blueprints.title')}
+                      i.bi.bi-arrow-down-up.sort-icon
+                  th.sortable(onclick="sortTable(1)" data-column="1")
+                    .d-flex.justify-content-between.align-items-center
+                      span #{__('folder_blueprints.id')}
+                      i.bi.bi-arrow-down-up.sort-icon
                 tr.filters
                   th
                     input.form-control.form-control-sm.column-filter(type="text", data-column="0", placeholder=__('folder_blueprints.filter_by_title'))
@@ -374,12 +376,63 @@ block scripts
       }
     };
 
+    // ページ読み込み時にスタイルを追加
+    document.addEventListener('DOMContentLoaded', function() {
+      // 既存のイベントリスナーに追加
+
+      // ソートアイコンのスタイルを追加
+      const style = document.createElement('style');
+      style.textContent = `
+        .sortable {
+          cursor: pointer;
+        }
+        .sortable:hover {
+          background-color: rgba(0, 0, 0, 0.05);
+        }
+        .sort-icon {
+          opacity: 0.3;
+          transition: all 0.2s;
+        }
+        th[data-sort-dir] .sort-icon {
+          opacity: 1;
+        }
+        th[data-sort-dir="asc"] .sort-icon {
+          transform: rotate(180deg);
+        }
+        th[data-sort-dir="desc"] .sort-icon {
+          transform: rotate(0deg);
+        }
+      `;
+      document.head.appendChild(style);
+    });
+
+    // 現在のソート状態
+    let currentSortColumn = 0; // デフォルトはタイトル列
+    let currentSortDirection = 'asc'; // デフォルトは昇順
+
     // Sorting functionality
-    function sortTable(n) {
-      let table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+    function sortTable(columnIndex) {
+      // 同じ列をクリックした場合は方向を反転、違う列の場合は昇順から開始
+      if (columnIndex === currentSortColumn) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSortColumn = columnIndex;
+        currentSortDirection = 'asc';
+      }
+
+      // ソート状態を視覚的に表示
+      const headers = document.querySelectorAll('#blueprintsTable th.sortable');
+      headers.forEach(header => {
+        header.removeAttribute('data-sort-dir');
+      });
+
+      const currentHeader = document.querySelector(`#blueprintsTable th[data-column="${columnIndex}"]`);
+      currentHeader.setAttribute('data-sort-dir', currentSortDirection);
+
+      // テーブルのソート
+      let table, rows, switching, i, x, y, shouldSwitch, switchcount = 0;
       table = document.getElementById('blueprintsTable');
       switching = true;
-      dir = 'asc';
 
       while (switching) {
         switching = false;
@@ -388,8 +441,8 @@ block scripts
         // ヘッダー行とフィルター行をスキップするため、開始インデックスを2に設定
         for (i = 2; i < (rows.length - 1); i++) {
           shouldSwitch = false;
-          x = rows[i].getElementsByTagName('td')[n];
-          y = rows[i + 1].getElementsByTagName('td')[n];
+          x = rows[i].getElementsByTagName('td')[columnIndex];
+          y = rows[i + 1].getElementsByTagName('td')[columnIndex];
 
           // 非表示の行はスキップ
           if (rows[i].style.display === 'none' || rows[i + 1].style.display === 'none') {
@@ -403,13 +456,16 @@ block scripts
             continue;
           }
 
-          if (dir === 'asc') {
-            if (x.textContent.toLowerCase() > y.textContent.toLowerCase()) {
+          const xText = x.textContent || x.innerText;
+          const yText = y.textContent || y.innerText;
+
+          if (currentSortDirection === 'asc') {
+            if (xText.toLowerCase() > yText.toLowerCase()) {
               shouldSwitch = true;
               break;
             }
-          } else if (dir === 'desc') {
-            if (x.textContent.toLowerCase() < y.textContent.toLowerCase()) {
+          } else {
+            if (xText.toLowerCase() < yText.toLowerCase()) {
               shouldSwitch = true;
               break;
             }
@@ -421,9 +477,10 @@ block scripts
           switching = true;
           switchcount++;
         } else {
-          if (switchcount === 0 && dir === 'asc') {
-            dir = 'desc';
-            switching = true;
+          if (switchcount === 0 && currentSortDirection === 'asc') {
+            // 初回のソートで何も入れ替わらなかった場合は、すでにソートされている可能性があるため
+            // 方向を反転させる必要はない
+            switching = false;
           }
         }
       }
