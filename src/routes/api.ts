@@ -52,6 +52,24 @@ router.get('/contacts', async (req, res) => {
 router.get('/spaces', async (req, res) => {
   try {
     const result = await wrikeApi.getSpaces(req.query);
+
+    // ルートフォルダ情報を取得（パーマリンク情報を含む）
+    const foldersResult = await wrikeApi.getRootFolders();
+
+    // フォルダIDをキーとしたマップを作成
+    const folderMap = new Map();
+    for (const folder of foldersResult.data) {
+      folderMap.set(folder.id, folder);
+    }
+
+    // スペース情報にパーマリンク情報を追加
+    for (const space of result.data) {
+      const folder = folderMap.get(space.id);
+      if (folder && folder.permalink) {
+        space.permalink = folder.permalink;
+      }
+    }
+
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

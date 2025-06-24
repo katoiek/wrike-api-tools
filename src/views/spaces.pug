@@ -10,6 +10,15 @@ block content
 
   .card.shadow-sm
     .card-body
+      .d-flex.justify-content-between.align-items-center.mb-3
+        .text-muted#spacesCount
+          span.spinner-border.spinner-border-sm.me-2(role="status")
+          | #{getLocale() === 'en' ? 'Loading spaces...' : 'スペースを読み込み中...'}
+        .btn-group
+          button.btn.btn-sm.btn-outline-secondary#refreshBtn(type="button")
+            i.bi.bi-arrow-clockwise.me-1
+            | #{getLocale() === 'en' ? 'Refresh' : '更新'}
+
       .table-responsive
         table.table.table-hover#spacesTable
           thead
@@ -35,64 +44,31 @@ block content
               th
                 input.form-control.form-control-sm.column-filter(type="text", data-column="2", placeholder=getLocale() === 'en' ? 'Filter by access type...' : 'アクセスタイプでフィルター...')
               th
-          tbody
-            if spaces && spaces.length
-              each space in spaces
-                tr
-                  td= space.title
-                  td
-                    code= space.id
-                  td= space.accessType
-                  td
-                    if space.permalink
-                      a.btn.btn-sm.btn-outline-secondary(href=space.permalink, target="_blank")
-                        i.bi.bi-box-arrow-up-right
-                        span.ms-1 #{getLocale() === 'en' ? 'Open in Wrike' : 'Wrikeで開く'}
-                    else
-                      - const wrikeUrl = `https://www.wrike.com/open.htm?id=${space.id}`
-                      a.btn.btn-sm.btn-outline-secondary(href=wrikeUrl, target="_blank")
-                        i.bi.bi-box-arrow-up-right
-                        span.ms-1 #{getLocale() === 'en' ? 'Open in Wrike' : 'Wrikeで開く'}
-            else
-              tr
-                td.text-center(colspan="4") #{getLocale() === 'en' ? 'No spaces found' : 'スペースがありません'}
+          tbody#spacesTableBody
+            tr.loading-row
+              td.text-center.py-5(colspan="4")
+                .spinner-border.text-primary(role="status")
+                p.mt-3.text-muted #{getLocale() === 'en' ? 'Loading spaces...' : 'スペースを読み込み中...'}
 
-      if nextPageToken
-        .d-flex.justify-content-between.align-items-center.mt-3
-          .text-muted #{getLocale() === 'en' ? 'Showing up to 100 spaces per page' : '1ページあたり最大100スペースを表示'}
-          nav(aria-label="Pagination")
-            ul.pagination
-              if currentPage > 1
-                li.page-item
-                  a.page-link(href=`/spaces?page=${currentPage - 1}`) #{getLocale() === 'en' ? 'Previous' : '前へ'}
+      #loadingMoreSpinner.text-center.my-3.d-none
+        .spinner-border.text-primary(role="status")
+        p.mt-2.text-muted #{getLocale() === 'en' ? 'Loading more spaces...' : 'さらにスペースを読み込み中...'}
 
-              - var startPage = Math.max(1, currentPage - 2)
-              - var endPage = Math.min(startPage + 4, totalPages)
-
-              if startPage > 1
-                li.page-item
-                  a.page-link(href="/spaces?page=1") 1
-                if startPage > 2
-                  li.page-item.disabled
-                    span.page-link ...
-
-              - for (var i = startPage; i <= endPage; i++)
-                li.page-item(class=i === currentPage ? 'active' : '')
-                  a.page-link(href=`/spaces?page=${i}`)= i
-
-              if endPage < totalPages
-                if endPage < totalPages - 1
-                  li.page-item.disabled
-                    span.page-link ...
-                li.page-item
-                  a.page-link(href=`/spaces?page=${totalPages}`)= totalPages
-
-              if nextPageToken
-                li.page-item
-                  a.page-link(href=`/spaces?page=${currentPage + 1}`) #{getLocale() === 'en' ? 'Next' : '次へ'}
+      #noResultsMessage.text-center.my-4.d-none
+        i.bi.bi-search.text-muted.fs-1.mb-3.d-block
+        p.text-muted #{getLocale() === 'en' ? 'No spaces found matching your search criteria.' : '検索条件に一致するスペースが見つかりませんでした。'}
 
 block scripts
   script.
+    // データ管理用の変数
+    let allSpaces = [];
+    let filteredSpaces = [];
+    let nextPageToken = null;
+    let isLoading = false;
+    let hasMoreData = true;
+    let batchSize = 20; // 一度に表示するスペースの数
+    let currentDisplayCount = 0;
+
     // フィルター状態を保持する配列
     const filterValues = [
       '', // 名前フィルター
@@ -103,50 +79,356 @@ block scripts
     // 全体検索の値
     let globalSearchValue = '';
 
-    // テーブルフィルタリング関数
-    function filterTable() {
-      const table = document.getElementById('spacesTable');
-      const rows = table.getElementsByTagName('tr');
-      const hasFilters = filterValues.some(filter => filter !== '');
+    // ページ読み込み時の処理
+    document.addEventListener('DOMContentLoaded', function() {
+      // スタイルの追加
+      const style = document.createElement('style');
+      style.textContent = `
+        .sortable {
+          cursor: pointer;
+        }
+        .sortable:hover {
+          background-color: rgba(0, 0, 0, 0.05);
+        }
+        .sort-icon {
+          opacity: 0.3;
+          transition: all 0.2s;
+        }
+        th[data-sort-dir] .sort-icon {
+          opacity: 1;
+        }
+        th[data-sort-dir="asc"] .sort-icon {
+          transform: rotate(180deg);
+        }
+        th[data-sort-dir="desc"] .sort-icon {
+          transform: rotate(0deg);
+        }
+        .space-row {
+          opacity: 0;
+          transform: translateY(10px);
+          transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .space-row.visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        #loadingMoreSpinner {
+          transition: opacity 0.3s ease;
+        }
+      `;
+      document.head.appendChild(style);
 
-      // ヘッダー行とフィルター行をスキップするため、開始インデックスを2に設定
-      for (let i = 2; i < rows.length; i++) {
-        const cells = rows[i].getElementsByTagName('td');
-        if (cells.length) {
-          let showRow = true;
+      // 初期データの読み込み
+      loadSpaces();
 
-          // 各カラムのフィルターを適用
-          for (let j = 0; j < filterValues.length; j++) {
-            if (filterValues[j] !== '' && cells[j]) {
-              const cellText = cells[j].textContent || cells[j].innerText;
-              if (cellText.toLowerCase().indexOf(filterValues[j].toLowerCase()) === -1) {
-                showRow = false;
-                break;
-              }
-            }
+      // スクロールイベントの設定
+      window.addEventListener('scroll', handleScroll);
+
+      // 更新ボタンのイベント設定
+      document.getElementById('refreshBtn').addEventListener('click', function() {
+        resetAndReload();
+      });
+    });
+
+    // スペースデータを読み込む関数
+    async function loadSpaces() {
+      if (isLoading || !hasMoreData) return;
+
+      isLoading = true;
+
+      try {
+        // ローディング表示
+        if (allSpaces.length === 0) {
+          document.querySelector('.loading-row').classList.remove('d-none');
+        } else {
+          document.getElementById('loadingMoreSpinner').classList.remove('d-none');
+        }
+
+        // APIパラメータの設定
+        const params = new URLSearchParams();
+        if (nextPageToken) {
+          params.append('nextPageToken', nextPageToken);
+        }
+
+        // APIリクエスト
+        const response = await fetch(`/api/spaces?${params.toString()}`);
+        if (!response.ok) throw new Error('Failed to fetch spaces');
+
+        const result = await response.json();
+
+        // データの処理
+        if (result.data && result.data.length > 0) {
+          // 新しいデータを追加
+          allSpaces = [...allSpaces, ...result.data];
+
+          // フィルタリングを適用
+          applyFilters();
+
+          // 次のページトークンを保存
+          nextPageToken = result.nextPageToken;
+          hasMoreData = !!nextPageToken;
+
+          // カウント表示の更新
+          updateSpacesCount();
+
+          // 追加のデータを表示
+          displayMoreSpaces();
+        } else {
+          hasMoreData = false;
+          if (allSpaces.length === 0) {
+            showNoResultsMessage();
           }
+        }
+      } catch (error) {
+        console.error('Error loading spaces:', error);
+        showErrorMessage();
+      } finally {
+        // ローディング表示を非表示
+        document.querySelector('.loading-row').classList.add('d-none');
+        document.getElementById('loadingMoreSpinner').classList.add('d-none');
+        isLoading = false;
+      }
+    }
 
-          // グローバル検索を適用
-          if (showRow && globalSearchValue !== '') {
-            showRow = false;
-            for (let j = 0; j < cells.length; j++) {
-              const cellText = cells[j].textContent || cells[j].innerText;
-              if (cellText.toLowerCase().indexOf(globalSearchValue.toLowerCase()) > -1) {
-                showRow = true;
-                break;
-              }
-            }
-          }
+    // スペースカウントの表示を更新
+    function updateSpacesCount() {
+      const countElement = document.getElementById('spacesCount');
+      const totalCount = allSpaces.length;
+      const filteredCount = filteredSpaces.length;
 
-          rows[i].style.display = showRow ? '' : 'none';
+      let countText = '';
+      if (globalSearchValue || filterValues.some(v => v !== '')) {
+        // フィルターが適用されている場合
+        countText = `${filteredCount} / ${totalCount} ${totalCount === 1 ? 'space' : 'spaces'}`;
+      } else {
+        // フィルターが適用されていない場合
+        countText = `${totalCount} ${totalCount === 1 ? 'space' : 'spaces'}`;
+        if (hasMoreData) {
+          countText += ' (loading more...)';
         }
       }
+
+      countElement.innerHTML = countText;
+    }
+
+    // スペースの行を作成する関数
+    function createSpaceRow(space) {
+      const tr = document.createElement('tr');
+      tr.className = 'space-row';
+
+      // 名前列
+      const tdName = document.createElement('td');
+      tdName.textContent = space.title;
+      tr.appendChild(tdName);
+
+      // ID列
+      const tdId = document.createElement('td');
+      const codeId = document.createElement('code');
+      codeId.textContent = space.id;
+      tdId.appendChild(codeId);
+      tr.appendChild(tdId);
+
+      // アクセスタイプ列
+      const tdAccessType = document.createElement('td');
+      tdAccessType.textContent = space.accessType;
+      tr.appendChild(tdAccessType);
+
+      // アクション列
+      const tdActions = document.createElement('td');
+      const link = document.createElement('a');
+      link.className = 'btn btn-sm btn-outline-secondary';
+      link.href = space.permalink || `https://www.wrike.com/open.htm?id=${space.id}`;
+      link.target = '_blank';
+
+      const icon = document.createElement('i');
+      icon.className = 'bi bi-box-arrow-up-right';
+      link.appendChild(icon);
+
+      const span = document.createElement('span');
+      span.className = 'ms-1';
+      span.textContent = document.documentElement.lang === 'en' ? 'Open in Wrike' : 'Wrikeで開く';
+      link.appendChild(span);
+
+      tdActions.appendChild(link);
+      tr.appendChild(tdActions);
+
+      return tr;
+    }
+
+    // 追加のスペースを表示する関数
+    function displayMoreSpaces() {
+      const tbody = document.getElementById('spacesTableBody');
+      const fragment = document.createDocumentFragment();
+
+      // 表示するデータの範囲を決定
+      const startIndex = currentDisplayCount;
+      const endIndex = Math.min(startIndex + batchSize, filteredSpaces.length);
+
+      // 新しい行を追加
+      for (let i = startIndex; i < endIndex; i++) {
+        const space = filteredSpaces[i];
+        const row = createSpaceRow(space);
+        fragment.appendChild(row);
+      }
+
+      // DOMに追加
+      tbody.appendChild(fragment);
+
+      // アニメーション効果を適用
+      setTimeout(() => {
+        const newRows = tbody.querySelectorAll('.space-row:not(.visible)');
+        newRows.forEach((row, index) => {
+          setTimeout(() => {
+            row.classList.add('visible');
+          }, index * 30); // 少しずつ表示
+        });
+      }, 10);
+
+      // 表示カウントを更新
+      currentDisplayCount = endIndex;
+
+      // すべてのデータを表示し終わり、まだデータがある場合は次のデータを読み込む
+      if (currentDisplayCount >= filteredSpaces.length && hasMoreData) {
+        loadSpaces();
+      }
+    }
+
+    // スクロールハンドラ
+    function handleScroll() {
+      if (isLoading) return;
+
+      const scrollY = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+
+      // ページの下部に近づいたら追加データを表示
+      if (scrollY + windowHeight > documentHeight - 300) {
+        if (currentDisplayCount < filteredSpaces.length) {
+          // まだ表示していないデータがある場合
+          displayMoreSpaces();
+        } else if (hasMoreData) {
+          // 表示するデータがなく、まだAPIから取得できるデータがある場合
+          loadSpaces();
+        }
+      }
+    }
+
+    // フィルタリングを適用する関数
+    function applyFilters() {
+      // グローバル検索とカラムフィルターを適用
+      filteredSpaces = allSpaces.filter(space => {
+        // グローバル検索
+        let matchesGlobal = true;
+        if (globalSearchValue) {
+          matchesGlobal =
+            space.title.toLowerCase().includes(globalSearchValue) ||
+            space.id.toLowerCase().includes(globalSearchValue) ||
+            space.accessType.toLowerCase().includes(globalSearchValue);
+        }
+
+        // カラムフィルター
+        let matchesColumns = true;
+        if (filterValues[0] && !space.title.toLowerCase().includes(filterValues[0].toLowerCase())) {
+          matchesColumns = false;
+        }
+        if (filterValues[1] && !space.id.toLowerCase().includes(filterValues[1].toLowerCase())) {
+          matchesColumns = false;
+        }
+        if (filterValues[2] && !space.accessType.toLowerCase().includes(filterValues[2].toLowerCase())) {
+          matchesColumns = false;
+        }
+
+        return matchesGlobal && matchesColumns;
+      });
+
+      // 表示をリセット
+      resetDisplay();
+
+      // 結果がない場合のメッセージ表示
+      if (filteredSpaces.length === 0) {
+        showNoResultsMessage();
+      } else {
+        hideNoResultsMessage();
+        // 新しいデータを表示
+        displayMoreSpaces();
+      }
+
+      // カウント表示の更新
+      updateSpacesCount();
+    }
+
+    // 表示をリセットする関数
+    function resetDisplay() {
+      const tbody = document.getElementById('spacesTableBody');
+      // ローディング行以外を削除
+      const loadingRow = document.querySelector('.loading-row');
+      tbody.innerHTML = '';
+      if (loadingRow) {
+        tbody.appendChild(loadingRow);
+        loadingRow.classList.add('d-none');
+      }
+      currentDisplayCount = 0;
+    }
+
+    // データをリセットして再読み込みする関数
+    function resetAndReload() {
+      allSpaces = [];
+      filteredSpaces = [];
+      nextPageToken = null;
+      hasMoreData = true;
+      currentDisplayCount = 0;
+
+      // フィルターもリセット
+      globalSearchValue = '';
+      document.getElementById('searchInput').value = '';
+      filterValues.fill('');
+      document.querySelectorAll('.column-filter').forEach(filter => {
+        filter.value = '';
+      });
+
+      // 表示をリセット
+      resetDisplay();
+      hideNoResultsMessage();
+
+      // データを再読み込み
+      loadSpaces();
+    }
+
+    // 結果がない場合のメッセージを表示
+    function showNoResultsMessage() {
+      document.getElementById('noResultsMessage').classList.remove('d-none');
+    }
+
+    // 結果がない場合のメッセージを非表示
+    function hideNoResultsMessage() {
+      document.getElementById('noResultsMessage').classList.add('d-none');
+    }
+
+    // エラーメッセージを表示
+    function showErrorMessage() {
+      const tbody = document.getElementById('spacesTableBody');
+      const loadingRow = document.querySelector('.loading-row');
+      if (loadingRow) {
+        loadingRow.classList.add('d-none');
+      }
+
+      const errorRow = document.createElement('tr');
+      const errorCell = document.createElement('td');
+      errorCell.className = 'text-center text-danger py-4';
+      errorCell.colSpan = 4;
+      errorCell.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>' +
+        (document.documentElement.lang === 'en' ?
+          'Error loading spaces. Please try again.' :
+          'スペースの読み込み中にエラーが発生しました。もう一度お試しください。');
+
+      errorRow.appendChild(errorCell);
+      tbody.appendChild(errorRow);
     }
 
     // グローバル検索機能
     document.getElementById('searchInput').addEventListener('keyup', function() {
       globalSearchValue = this.value.toLowerCase();
-      filterTable();
+      applyFilters();
     });
 
     // カラムフィルター機能
@@ -154,7 +436,7 @@ block scripts
       filter.addEventListener('keyup', function() {
         const column = parseInt(this.getAttribute('data-column'));
         filterValues[column] = this.value;
-        filterTable();
+        applyFilters();
       });
     });
 

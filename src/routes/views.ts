@@ -113,65 +113,18 @@ router.get('/', async (req, res) => {
 router.get('/spaces', requireAuth, async (req, res) => {
   try {
     console.log('Spaces route called');
-    // ページネーション用のパラメータを取得
-    const page = parseInt(req.query.page as string) || 1;
-    const pageTokens: { [key: number]: string } = req.session.spacePageTokens || {};
 
-    // APIリクエストのパラメータを設定
-    const params: any = {};
-    if (page > 1 && pageTokens[page]) {
-      params.nextPageToken = pageTokens[page];
-    }
-
-    // スペース情報を取得
-    console.log('Calling getSpaces with params:', params);
-    const spacesResult = await wrikeApi.getSpaces(params);
-    console.log('Spaces result data length:', spacesResult.data.length);
-
-    // ルートフォルダ情報を一度に取得（パーマリンク情報を含む）
-    console.log('Calling getRootFolders to get permalinks');
-    const foldersResult = await wrikeApi.getRootFolders();
-    console.log('Root folders result data length:', foldersResult.data.length);
-
-    // フォルダIDをキーとしたマップを作成
-    const folderMap = new Map();
-    for (const folder of foldersResult.data) {
-      folderMap.set(folder.id, folder);
-    }
-
-    // スペース情報にパーマリンク情報を追加
-    for (const space of spacesResult.data) {
-      const folder = folderMap.get(space.id);
-      if (folder && folder.permalink) {
-        space.permalink = folder.permalink;
-        console.log(`Space ${space.id} permalink: ${space.permalink}`);
-      }
-    }
-
-    // 次のページのトークンを保存
-    if (spacesResult.nextPageToken) {
-      if (!req.session.spacePageTokens) {
-        req.session.spacePageTokens = {};
-      }
-      req.session.spacePageTokens[page + 1] = spacesResult.nextPageToken;
-    }
-
-    // 総ページ数を計算（推定）
-    const totalPages = Math.max(page, spacesResult.nextPageToken ? page + 1 : page);
-
+    // 非同期データ読み込みを使用するため、初期データは空で表示
     res.render('spaces', {
       title: 'Spaces',
-      spaces: spacesResult.data,
       user: req.session.userInfo,
-      nextPageToken: spacesResult.nextPageToken,
-      currentPage: page,
-      totalPages: totalPages
+      initialLoading: true
     });
   } catch (error) {
-    console.error('Error getting spaces:', error);
+    console.error('Error rendering spaces page:', error);
     res.render('error', {
       title: 'エラー',
-      message: 'Failed to load spaces'
+      message: 'Failed to load spaces page'
     });
   }
 });

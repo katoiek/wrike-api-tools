@@ -72,6 +72,29 @@ To run in development mode:
 npm run dev
 ```
 
+### Database Security
+
+This application uses SQLite database to store authentication tokens, user information, and application settings. Please note the following important security considerations:
+
+1. **Sensitive Information Warning**
+   - The database file (`data/wrike-integration.db`) contains sensitive information including OAuth tokens and encrypted settings.
+   - This file is excluded from Git via `.gitignore` and should NEVER be committed to the repository.
+   - Always verify that database files are not included in your commits before pushing changes.
+
+2. **Backup Strategy**
+   - Since database files are not tracked by Git, implement a separate backup strategy for production environments.
+   - Consider regular scheduled backups of the `data` directory.
+   - Store backups securely with appropriate encryption if they contain production data.
+
+3. **Production Environment Security**
+   - In production environments, set appropriate file permissions on the `data` directory:
+     ```bash
+     chmod 700 data
+     chmod 600 data/*.db
+     ```
+   - Consider using environment variables for all sensitive configuration instead of storing in the database.
+   - For high-security deployments, consider using a more robust database system with proper access controls.
+
 ### Recent Updates
 
 - Added custom fields view with asynchronous loading for improved performance
@@ -157,6 +180,29 @@ npm start
 ```bash
 npm run dev
 ```
+
+### データベースセキュリティ
+
+このアプリケーションはSQLiteデータベースを使用して認証トークン、ユーザー情報、およびアプリケーション設定を保存しています。以下の重要なセキュリティ上の考慮事項に注意してください：
+
+1. **機密情報に関する警告**
+   - データベースファイル（`data/wrike-integration.db`）にはOAuthトークンや暗号化された設定など、機密情報が含まれています。
+   - このファイルは`.gitignore`によってGitから除外されており、リポジトリにコミットしてはいけません。
+   - 変更をプッシュする前に、データベースファイルがコミットに含まれていないことを常に確認してください。
+
+2. **バックアップ戦略**
+   - データベースファイルはGitで追跡されないため、本番環境では別途バックアップ戦略を実装してください。
+   - `data`ディレクトリの定期的なスケジュールバックアップを検討してください。
+   - 本番データを含むバックアップは、適切な暗号化を施して安全に保管してください。
+
+3. **本番環境のセキュリティ**
+   - 本番環境では、`data`ディレクトリに適切なファイルパーミッションを設定してください：
+     ```bash
+     chmod 700 data
+     chmod 600 data/*.db
+     ```
+   - データベースに保存する代わりに、すべての機密設定に環境変数を使用することを検討してください。
+   - 高セキュリティが求められる環境では、適切なアクセス制御を備えたより堅牢なデータベースシステムの使用を検討してください。
 
 ### 最近の更新
 
