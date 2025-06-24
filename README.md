@@ -10,7 +10,9 @@ Wrike API Tools is a local UI tool that allows you to access and manage Wrike da
 ### Features
 
 - Accessing your Wrike account using OAuth2 (permanent token)
-- View spaces, user groups, and user information
+- View spaces, user groups, custom fields, and user information
+- Advanced sorting and filtering capabilities for all data tables
+- Asynchronous data loading for improved performance
 - Multi-language support (English/Japanese)
 
 ### Installation
@@ -72,9 +74,10 @@ npm run dev
 
 ### Recent Updates
 
-- Removed task blueprint functionality
+- Added custom fields view with asynchronous loading for improved performance
+- Implemented enhanced sorting functionality with visual indicators for all data tables
+- Added client-side filtering for faster data exploration
 - Changed folder blueprint view to hierarchical tree display with expand/collapse functionality
-- Removed task management functionality
 - Added user group management with hierarchical view
 - Improved API performance and reliability
 - Fixed compatibility issues with Wrike API v4
@@ -93,7 +96,9 @@ Wrike API Toolsは、Wrike APIを使用してWrikeのデータにアクセスし
 ### 機能
 
 - OAuth2（永続トークン）によるWrikeアカウントへのアクセス
-- スペース、ユーザーグループ、ユーザー情報の表示
+- スペース、ユーザーグループ、カスタムフィールド、ユーザー情報の表示
+- すべてのデータテーブルに対する高度なソートとフィルタリング機能
+- パフォーマンス向上のための非同期データ読み込み
 - 多言語対応（英語/日本語）
 
 ### インストール方法
@@ -155,9 +160,10 @@ npm run dev
 
 ### 最近の更新
 
-- タスクブループリント機能を削除
+- パフォーマンス向上のための非同期読み込みを備えたカスタムフィールド表示機能を追加
+- すべてのデータテーブルに視覚的インジケーターを備えた高度なソート機能を実装
+- より高速なデータ探索のためのクライアントサイドフィルタリングを追加
 - フォルダブループリントを階層ツリー表示に変更（展開・折りたたみ機能付き）
-- タスク管理機能を削除
 - ユーザーグループ管理と階層表示機能を追加
 - API性能と信頼性の向上
 - Wrike API v4との互換性問題を修正
