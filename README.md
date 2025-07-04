@@ -45,9 +45,15 @@ Create a `.env` file with the following content:
 PORT=3000
 NODE_ENV=development
 SESSION_SECRET=your_session_secret
+ENCRYPTION_KEY=your_32_character_encryption_key
 WRIKE_CLIENT_ID=your_wrike_client_id
 WRIKE_CLIENT_SECRET=your_wrike_client_secret
 WRIKE_REDIRECT_URI=http://localhost:3000/auth/callback
+
+# Optional: Pre-configure tokens (if you have them)
+# WRIKE_ACCESS_TOKEN=your_access_token
+# WRIKE_REFRESH_TOKEN=your_refresh_token
+# WRIKE_HOST=your_host.wrike.com
 ```
 
 4. Build the application:
@@ -72,28 +78,32 @@ To run in development mode:
 npm run dev
 ```
 
-### Database Security
+### Data Storage and Security
 
-This application uses SQLite database to store authentication tokens, user information, and application settings. Please note the following important security considerations:
+This application has been updated to use environment variables and in-memory storage instead of SQLite database for improved security and simplicity.
 
-1. **Sensitive Information Warning**
-   - The database file (`data/wrike-integration.db`) contains sensitive information including OAuth tokens and encrypted settings.
-   - This file is excluded from Git via `.gitignore` and should NEVER be committed to the repository.
-   - Always verify that database files are not included in your commits before pushing changes.
+1. **Environment Variable Security**
+   - All sensitive configuration is now stored in environment variables
+   - OAuth tokens and user data are stored in memory only (cleared on restart)
+   - No persistent database files are created or maintained
+   - Sensitive data is automatically detected and handled appropriately
 
-2. **Backup Strategy**
-   - Since database files are not tracked by Git, implement a separate backup strategy for production environments.
-   - Consider regular scheduled backups of the `data` directory.
-   - Store backups securely with appropriate encryption if they contain production data.
+2. **Memory-based Storage**
+   - Tokens are stored in memory during application runtime
+   - User cache and application data are maintained in memory
+   - All data is cleared when the application restarts
+   - No file-based storage of sensitive information
 
 3. **Production Environment Security**
-   - In production environments, set appropriate file permissions on the `data` directory:
-     ```bash
-     chmod 700 data
-     chmod 600 data/*.db
-     ```
-   - Consider using environment variables for all sensitive configuration instead of storing in the database.
-   - For high-security deployments, consider using a more robust database system with proper access controls.
+   - Use system environment variables for all sensitive configuration
+   - Consider using external secret management services for production deployments
+   - Environment variables are the primary configuration method
+   - No database files to secure or backup
+
+4. **Migration from SQLite**
+   - See `MIGRATION_GUIDE.md` for detailed migration instructions
+   - Legacy SQLite functionality has been replaced with environment variables
+   - Old database files can be safely removed after migration
 
 ### Recent Updates
 
@@ -154,9 +164,15 @@ npm install
 PORT=3000
 NODE_ENV=development
 SESSION_SECRET=your_session_secret
+ENCRYPTION_KEY=your_32_character_encryption_key
 WRIKE_CLIENT_ID=your_wrike_client_id
 WRIKE_CLIENT_SECRET=your_wrike_client_secret
 WRIKE_REDIRECT_URI=http://localhost:3000/auth/callback
+
+# オプション：トークンの事前設定（既存のトークンがある場合）
+# WRIKE_ACCESS_TOKEN=your_access_token
+# WRIKE_REFRESH_TOKEN=your_refresh_token
+# WRIKE_HOST=your_host.wrike.com
 ```
 
 4. アプリケーションをビルドします：
@@ -181,28 +197,32 @@ npm start
 npm run dev
 ```
 
-### データベースセキュリティ
+### データ保存とセキュリティ
 
-このアプリケーションはSQLiteデータベースを使用して認証トークン、ユーザー情報、およびアプリケーション設定を保存しています。以下の重要なセキュリティ上の考慮事項に注意してください：
+このアプリケーションは、セキュリティの向上と簡素化のため、SQLiteデータベースから環境変数とインメモリストレージへと更新されました。
 
-1. **機密情報に関する警告**
-   - データベースファイル（`data/wrike-integration.db`）にはOAuthトークンや暗号化された設定など、機密情報が含まれています。
-   - このファイルは`.gitignore`によってGitから除外されており、リポジトリにコミットしてはいけません。
-   - 変更をプッシュする前に、データベースファイルがコミットに含まれていないことを常に確認してください。
+1. **環境変数セキュリティ**
+   - すべての機密設定は環境変数に保存されます
+   - OAuthトークンとユーザーデータはメモリ内のみに保存（再起動時にクリア）
+   - 永続的なデータベースファイルは作成・維持されません
+   - 機密データは自動的に検出され、適切に処理されます
 
-2. **バックアップ戦略**
-   - データベースファイルはGitで追跡されないため、本番環境では別途バックアップ戦略を実装してください。
-   - `data`ディレクトリの定期的なスケジュールバックアップを検討してください。
-   - 本番データを含むバックアップは、適切な暗号化を施して安全に保管してください。
+2. **メモリベースのストレージ**
+   - トークンはアプリケーション実行中にメモリ内に保存されます
+   - ユーザーキャッシュとアプリケーションデータはメモリ内に維持されます
+   - すべてのデータはアプリケーション再起動時にクリアされます
+   - 機密情報のファイルベース保存は行われません
 
 3. **本番環境のセキュリティ**
-   - 本番環境では、`data`ディレクトリに適切なファイルパーミッションを設定してください：
-     ```bash
-     chmod 700 data
-     chmod 600 data/*.db
-     ```
-   - データベースに保存する代わりに、すべての機密設定に環境変数を使用することを検討してください。
-   - 高セキュリティが求められる環境では、適切なアクセス制御を備えたより堅牢なデータベースシステムの使用を検討してください。
+   - すべての機密設定にはシステム環境変数を使用してください
+   - 本番デプロイメントでは外部シークレット管理サービスの使用を検討してください
+   - 環境変数が主要な設定方法です
+   - セキュリティ保護やバックアップが必要なデータベースファイルはありません
+
+4. **SQLiteからの移行**
+   - 詳細な移行手順については `MIGRATION_GUIDE.md` を参照してください
+   - 従来のSQLite機能は環境変数に置き換えられました
+   - 移行後、古いデータベースファイルは安全に削除できます
 
 ### 最近の更新
 

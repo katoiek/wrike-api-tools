@@ -1,42 +1,36 @@
-import { dbGet, dbAll, dbRun } from '../database/init';
-import { encrypt, decrypt } from '../utils/encryption';
+import {
+  getEnvSetting,
+  setEnvSetting,
+  getAllEnvSettings,
+  getAllEnvSettingsWithMetadata,
+  validateRequiredEnvSettings,
+  type EnvSetting
+} from './env-settings';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 /**
- * Interface for a setting record
+ * Interface for a setting record (環境変数ベース用に更新)
  */
 export interface Setting {
-  id: number;
   key: string;
   value: string;
-  encrypted: number;
-  created_at: string;
-  updated_at: string;
+  encrypted: boolean;
+  source: 'env' | 'default';
 }
+
+// 後方互換性のためのエイリアス
+export type { EnvSetting };
 
 /**
  * Get a setting by key
  * @param key The setting key
- * @returns The setting value (decrypted if necessary)
+ * @returns The setting value
  */
 export async function getSetting(key: string): Promise<string | null> {
   try {
-    // First check environment variables
-    const envValue = process.env[key];
-    if (envValue) {
-      return envValue;
-    }
-
-    // Then check database
-    const setting = await dbGet<Setting>('SELECT * FROM settings WHERE key = ?', [key]);
-
-    if (!setting) {
-      return null;
-    }
-
-    return setting.encrypted ? decrypt(setting.value) : setting.value;
+    return getEnvSetting(key);
   } catch (error) {
     console.error(`Error getting setting ${key}:`, error);
     return null;
@@ -52,38 +46,7 @@ export async function getSetting(key: string): Promise<string | null> {
  */
 export async function setSetting(key: string, value: string, shouldEncrypt = false): Promise<boolean> {
   try {
-    // Automatically encrypt sensitive information
-    if (!shouldEncrypt) {
-      const lowerKey = key.toLowerCase();
-      if (
-        lowerKey.includes('token') ||
-        lowerKey.includes('secret') ||
-        lowerKey.includes('password') ||
-        lowerKey.includes('key')
-      ) {
-        shouldEncrypt = true;
-      }
-    }
-
-    const storedValue = shouldEncrypt ? encrypt(value) : value;
-
-    // Check if setting already exists
-    const existing = await dbGet<{id: number}>('SELECT id FROM settings WHERE key = ?', [key]);
-
-    if (existing) {
-      // Update existing setting
-      await dbRun(
-        'UPDATE settings SET value = ?, encrypted = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?',
-        [storedValue, shouldEncrypt ? 1 : 0, key]
-      );
-    } else {
-      // Insert new setting
-      await dbRun(
-        'INSERT INTO settings (key, value, encrypted) VALUES (?, ?, ?)',
-        [key, storedValue, shouldEncrypt ? 1 : 0]
-      );
-    }
-
+    setEnvSetting(key, value, shouldEncrypt);
     return true;
   } catch (error) {
     console.error(`Error setting ${key}:`, error);
@@ -98,7 +61,9 @@ export async function setSetting(key: string, value: string, shouldEncrypt = fal
  */
 export async function deleteSetting(key: string): Promise<boolean> {
   try {
-    await dbRun('DELETE FROM settings WHERE key = ?', [key]);
+    // 環境変数の削除（注意: プロセス内のみ）
+    delete process.env[key];
+    console.warn(`Setting ${key} deleted from current process. This does not affect system environment variables.`);
     return true;
   } catch (error) {
     console.error(`Error deleting setting ${key}:`, error);
@@ -113,29 +78,7 @@ export async function deleteSetting(key: string): Promise<boolean> {
  */
 export async function getAllSettings(includeEncrypted = false): Promise<Record<string, string>> {
   try {
-    const settings = await dbAll<Setting>('SELECT * FROM settings');
-
-    const result: Record<string, string> = {};
-
-    // Add settings from database
-    for (const setting of settings) {
-      if (setting.encrypted) {
-        if (includeEncrypted) {
-          try {
-            result[setting.key] = decrypt(setting.value);
-          } catch (error) {
-            console.error(`Error decrypting setting ${setting.key}:`, error);
-            result[setting.key] = '[暗号化済み]';
-          }
-        } else {
-          result[setting.key] = '[暗号化済み]';
-        }
-      } else {
-        result[setting.key] = setting.value;
-      }
-    }
-
-    return result;
+    return getAllEnvSettings(includeEncrypted);
   } catch (error) {
     console.error('Error getting all settings:', error);
     return {};
@@ -148,7 +91,14 @@ export async function getAllSettings(includeEncrypted = false): Promise<Record<s
  */
 export async function getAllSettingsWithMetadata(): Promise<Setting[]> {
   try {
-    return await dbAll<Setting>('SELECT * FROM settings ORDER BY key');
+    const envSettings = getAllEnvSettingsWithMetadata();
+    // EnvSettingをSettingに変換
+    return envSettings.map(setting => ({
+      key: setting.key,
+      value: setting.value,
+      encrypted: setting.encrypted,
+      source: setting.source
+    }));
   } catch (error) {
     console.error('Error getting all settings with metadata:', error);
     return [];
@@ -159,14 +109,14 @@ export async function getAllSettingsWithMetadata(): Promise<Setting[]> {
  * Initialize default settings if they don't exist
  */
 export async function initializeDefaultSettings(): Promise<void> {
-  const defaultSettings = [
-    { key: 'WRIKE_REDIRECT_URI', value: 'http://localhost:3000/auth/callback', encrypt: false },
-  ];
+  // 環境変数が設定されているかチェック
+  const validation = validateRequiredEnvSettings();
 
-  for (const setting of defaultSettings) {
-    const existing = await getSetting(setting.key);
-    if (existing === null) {
-      await setSetting(setting.key, setting.value, setting.encrypt);
-    }
+  if (!validation.valid) {
+    console.warn('Missing required environment variables:', validation.missing);
+    console.warn('Please set these environment variables in your .env file or system environment');
   }
+
+  // デフォルト設定は env-settings.ts で処理されるため、ここでは検証のみ
+  console.log('Environment settings validation completed');
 }

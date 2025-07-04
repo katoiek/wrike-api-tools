@@ -1,12 +1,20 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { dbGet, dbRun } from '../database/init';
+import {
+  getCurrentToken,
+  saveToken,
+  updateToken,
+  isTokenValid,
+  type Token as MemoryToken,
+  type TokenResponse
+} from './memory-token-storage';
+import { getEnvSetting } from './env-settings';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Token interface
+// Token interface（後方互換性のため）
 interface Token {
-  id: number;
+  id?: number;
   access_token: string;
   refresh_token: string;
   expires_at: string;
@@ -15,14 +23,7 @@ interface Token {
   updated_at: string;
 }
 
-// OAuth token response
-interface TokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
-  host: string;
-}
+// OAuth token response は memory-token-storage から import
 
 // Wrike API response interface
 export interface WrikeApiResponse<T> {
@@ -36,7 +37,7 @@ export interface WrikeApiResponse<T> {
  */
 export class WrikeApiClient {
   private axiosInstance: AxiosInstance | null = null;
-  private token: Token | null = null;
+  private token: MemoryToken | null = null;
   private baseUrl: string = '';
 
   /**
@@ -44,11 +45,11 @@ export class WrikeApiClient {
    */
   async initialize(): Promise<boolean> {
     try {
-      // Get token from database
-      const token = await dbGet<Token>('SELECT * FROM tokens ORDER BY created_at DESC LIMIT 1');
+      // Get token from memory storage
+      const token = getCurrentToken();
 
       if (!token) {
-        console.log('No token found in database');
+        console.log('No token found in memory storage');
         return false;
       }
 
@@ -56,8 +57,7 @@ export class WrikeApiClient {
       this.baseUrl = `https://${token.host}/api/v4`;
 
       // Check if token is expired
-      const expiresAt = new Date(token.expires_at);
-      if (expiresAt <= new Date()) {
+      if (!isTokenValid(token)) {
         // Token is expired, try to refresh
         const refreshed = await this.refreshToken();
         if (!refreshed) {
@@ -69,7 +69,7 @@ export class WrikeApiClient {
       this.axiosInstance = axios.create({
         baseURL: this.baseUrl,
         headers: {
-          'Authorization': `Bearer ${this.token.access_token}`,
+          'Authorization': `Bearer ${this.token.accessToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -149,39 +149,18 @@ export class WrikeApiClient {
         }
       );
 
-      // Calculate expiration time
-      const expiresAt = new Date();
-      expiresAt.setSeconds(expiresAt.getSeconds() + response.data.expires_in);
-
-      // Save token to database
-      await dbRun(
-        'INSERT INTO tokens (access_token, refresh_token, expires_at, host) VALUES (?, ?, ?, ?)',
-        [
-          response.data.access_token,
-          response.data.refresh_token,
-          expiresAt.toISOString(),
-          response.data.host
-        ]
-      );
+      // Save token to memory storage
+      saveToken(response.data, response.data.host);
 
       // Update client
-      this.token = {
-        id: 0, // Will be set by the database
-        access_token: response.data.access_token,
-        refresh_token: response.data.refresh_token,
-        expires_at: expiresAt.toISOString(),
-        host: response.data.host,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
+      this.token = getCurrentToken();
       this.baseUrl = `https://${response.data.host}/api/v4`;
 
       // Create axios instance with token
       this.axiosInstance = axios.create({
         baseURL: this.baseUrl,
         headers: {
-          'Authorization': `Bearer ${this.token.access_token}`,
+          'Authorization': `Bearer ${this.token?.accessToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -218,45 +197,25 @@ export class WrikeApiClient {
             client_id: clientId,
             client_secret: clientSecret,
             grant_type: 'refresh_token',
-            refresh_token: this.token.refresh_token
+            refresh_token: this.token.refreshToken
           }
         }
       );
 
-      // Calculate expiration time
-      const expiresAt = new Date();
-      expiresAt.setSeconds(expiresAt.getSeconds() + response.data.expires_in);
-
-      // Save token to database
-      await dbRun(
-        'INSERT INTO tokens (access_token, refresh_token, expires_at, host) VALUES (?, ?, ?, ?)',
-        [
-          response.data.access_token,
-          response.data.refresh_token,
-          expiresAt.toISOString(),
-          response.data.host
-        ]
-      );
+      // Update token in memory storage
+      updateToken(response.data, response.data.host);
 
       // Update client
-      this.token = {
-        id: 0, // Will be set by the database
-        access_token: response.data.access_token,
-        refresh_token: response.data.refresh_token,
-        expires_at: expiresAt.toISOString(),
-        host: response.data.host,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      this.token = getCurrentToken();
 
       // Update axios instance
       if (this.axiosInstance) {
-        this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${this.token.access_token}`;
+        this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${this.token?.accessToken}`;
       } else {
         this.axiosInstance = axios.create({
           baseURL: this.baseUrl,
           headers: {
-            'Authorization': `Bearer ${this.token.access_token}`,
+            'Authorization': `Bearer ${this.token?.accessToken}`,
             'Content-Type': 'application/json'
           }
         });

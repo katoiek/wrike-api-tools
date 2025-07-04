@@ -5,7 +5,7 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import fs from 'fs';
-import { initializeDatabase } from './database/init';
+// import { initializeDatabase } from './database/init'; // SQLite削除のため不要
 import authRoutes from './routes/auth';
 import apiRoutes from './routes/api';
 import viewRoutes from './routes/views';
@@ -178,7 +178,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Initialize database
 async function initialize() {
   try {
-    await initializeDatabase();
+    // await initializeDatabase(); // SQLite削除のため不要
     console.log('Database initialized successfully');
   } catch (err) {
     console.error('Failed to initialize:', err);
