@@ -25,9 +25,13 @@ block content
               span.badge.bg-danger.mb-2 削除済み
             else
               span.badge.bg-success.mb-2 アクティブ
-            if userDetail.role
+            if userDetail.roleInfo
               p
-                span.badge.user-role(data-role=userDetail.role, class=`bg-${userDetail.role === 'Admin' ? 'danger' : (userDetail.role === 'User' ? 'primary' : (userDetail.role === 'Collaborator' ? 'success' : (userDetail.role === 'External' ? 'warning' : 'secondary')))}`)= userDetail.role
+                span.badge.user-role(class=userDetail.roleInfo.roleClass)
+                  | #{getLocale() === 'en' ? userDetail.displayRole : (userDetail.displayRole === 'Owner' ? 'オーナー' : userDetail.displayRole === 'Administrator' ? '管理者' : userDetail.displayRole === 'External user' ? '外部ユーザー' : userDetail.displayRole === 'Regular user' ? '正規ユーザー' : userDetail.displayRole === 'Collaborator' ? 'コラボレーター' : userDetail.displayRole)}
+            else if userDetail.role
+              p
+                span.badge.user-role.bg-primary= userDetail.role
 
       .col-md-8
         .card.shadow-sm.mb-4
@@ -39,26 +43,26 @@ block content
                 strong ID
               .col-md-8
                 code #{userDetail.id}
-            
+
             if userDetail.profiles && userDetail.profiles.length > 0
               .row.mb-3
                 .col-md-4
                   strong メールアドレス
                 .col-md-8
                   a(href=`mailto:${userDetail.profiles[0].email}`) #{userDetail.profiles[0].email}
-            
+
             .row.mb-3
               .col-md-4
                 strong タイムゾーン
               .col-md-8
                 | #{userDetail.timezone || '未設定'}
-            
+
             .row.mb-3
               .col-md-4
                 strong ロケール
               .col-md-8
                 | #{userDetail.locale || '未設定'}
-            
+
             .row.mb-3
               .col-md-4
                 strong 最終アクセス
@@ -67,32 +71,72 @@ block content
                   | #{new Date(userDetail.lastActivity).toLocaleString()}
                 else
                   | 未設定
-        
+
         if userDetail.profiles && userDetail.profiles.length > 0
           .card.shadow-sm.mb-4
             .card-header.bg-light
               h5.mb-0 プロフィール情報
             .card-body
-              each profile in userDetail.profiles
+              each profile, index in userDetail.profiles
+                if index > 0
+                  hr
+                h6 プロフィール #{index + 1}
+
                 .row.mb-3
                   .col-md-4
-                    strong アカウントタイプ
+                    strong アカウントID
                   .col-md-8
-                    | #{profile.accountType || '未設定'}
-                
+                    code #{profile.accountId || '未設定'}
+
                 .row.mb-3
                   .col-md-4
-                    strong 外部ID
+                    strong ベースロール
                   .col-md-8
-                    | #{profile.external ? profile.external.id || '未設定' : '未設定'}
-                
+                    span.badge.bg-info #{profile.role || '未設定'}
+
+                .row.mb-3
+                  .col-md-4
+                    strong 外部ユーザー
+                  .col-md-8
+                    if profile.external
+                      span.badge.bg-warning 外部ユーザー
+                    else
+                      span.badge.bg-success 内部ユーザー
+
+                .row.mb-3
+                  .col-md-4
+                    strong 管理者権限
+                  .col-md-8
+                    if profile.admin
+                      span.badge.bg-danger 管理者
+                    else
+                      span.badge.bg-secondary 一般ユーザー
+
+                .row.mb-3
+                  .col-md-4
+                    strong オーナー権限
+                  .col-md-8
+                    if profile.owner
+                      span.badge.bg-danger オーナー
+                    else
+                      span.badge.bg-secondary 非オーナー
+
+                .row.mb-3
+                  .col-md-4
+                    strong アカウント状態
+                  .col-md-8
+                    if profile.active
+                      span.badge.bg-success アクティブ
+                    else
+                      span.badge.bg-secondary 非アクティブ
+
                 if profile.phone
                   .row.mb-3
                     .col-md-4
                       strong 電話番号
                     .col-md-8
                       a(href=`tel:${profile.phone}`) #{profile.phone}
-        
+
         if userDetail.metadata
           .card.shadow-sm
             .card-header.bg-light
