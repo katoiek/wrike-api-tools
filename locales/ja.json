@@ -51,7 +51,14 @@
     "name": "名前",
     "email": "メールアドレス",
     "role": "役割",
-    "actions": "アクション"
+    "actions": "アクション",
+    "roles": {
+      "owner": "オーナー",
+      "administrator": "管理者",
+      "external": "外部ユーザー",
+      "regular": "正規ユーザー",
+      "collaborator": "コラボレーター"
+    }
   },
   "userGroups": {
     "title": "ユーザーグループ",

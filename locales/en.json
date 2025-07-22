@@ -51,7 +51,14 @@
     "name": "Name",
     "email": "Email",
     "role": "Role",
-    "actions": "Actions"
+    "actions": "Actions",
+    "roles": {
+      "owner": "Owner",
+      "administrator": "Administrator",
+      "external": "External user",
+      "regular": "Regular user",
+      "collaborator": "Collaborator"
+    }
   },
   "userGroups": {
     "title": "User Groups",

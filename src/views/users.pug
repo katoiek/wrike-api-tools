@@ -1,291 +1,648 @@
 extends layout
 
 block content
-  .row.mb-4
-    .col-md-6
-      h1.h3 #{__('users.title')}
-    .col-md-6.text-end
-      .btn-group
-        a.btn.btn-outline-primary(href="/users/export")
-          i.bi.bi-download.me-1
-          | #{getLocale() === 'en' ? 'Export CSV' : 'CSVエクスポート'}
-
-  .row.mb-3
-    .col-md-12
-      .input-group
-        input.form-control#userSearch(type="text", placeholder=getLocale() === 'en' ? 'Search users...' : 'ユーザーを検索...')
-        button.btn.btn-primary(type="button")
-          i.bi.bi-search
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1 #{__('users.title')}
+    .input-group.w-auto
+      input#searchInput.form-control(type="text", placeholder=getLocale() === 'en' ? 'Search users...' : 'ユーザーを検索...')
+      button.btn.btn-outline-secondary(type="button")
+        i.bi.bi-search
 
   .card.shadow-sm
-    .card-header.bg-light
-      .row
-        .col-md-6
-          h5.mb-0 #{__('users.title')}
-        .col-md-6.text-end
-          .d-flex.justify-content-end.gap-2
-            select.form-select.form-select-sm#emailDomain(style="width: auto;")
-              option(value="all") #{getLocale() === 'en' ? 'All domains' : 'すべてのドメイン'}
-              option(value="has-email") #{getLocale() === 'en' ? 'Has email' : 'メールあり'}
-              option(value="no-email") #{getLocale() === 'en' ? 'No email' : 'メールなし'}
-            select.form-select.form-select-sm#userStatus(style="width: auto;")
-              option(value="active") #{getLocale() === 'en' ? 'Active only' : 'アクティブのみ'}
-              option(value="deleted") #{getLocale() === 'en' ? 'Deleted only' : '削除済みのみ'}
-              option(value="all") #{getLocale() === 'en' ? 'Show all' : 'すべて表示'}
-            select.form-select.form-select-sm#userSort(style="width: auto;")
-              option(value="name") #{getLocale() === 'en' ? 'By name' : '名前順'}
-              option(value="id") #{getLocale() === 'en' ? 'By ID' : 'ID順'}
-              option(value="email") #{getLocale() === 'en' ? 'By email' : 'メール順'}
+    .card-body
+      .d-flex.justify-content-between.align-items-center.mb-3
+        .text-muted#usersCount
+          span.spinner-border.spinner-border-sm.me-2(role="status")
+          | #{getLocale() === 'en' ? 'Loading users...' : 'ユーザーを読み込み中...'}
+        .btn-group
+          button.btn.btn-sm.btn-outline-secondary#refreshBtn(type="button")
+            i.bi.bi-arrow-clockwise.me-1
+            | #{getLocale() === 'en' ? 'Refresh' : '更新'}
+          a.btn.btn-sm.btn-success#exportBtn(href="/users/export" target="_blank")
+            i.bi.bi-download.me-1
+            | #{getLocale() === 'en' ? 'Export CSV' : 'CSV出力'}
 
-    .card-body.p-0
       .table-responsive
-        table.table.table-hover.mb-0
-          thead.table-light
+        table.table.table-hover#usersTable
+          thead
             tr
-              th ID
-              th #{__('users.name')}
-              th #{__('users.email')}
-              th #{getLocale() === 'en' ? 'Status' : 'ステータス'}
+              th.sortable(onclick="sortTable(0)" data-column="0")
+                .d-flex.justify-content-between.align-items-center
+                  span ID
+                  i.bi.bi-arrow-down-up.sort-icon
+              th.sortable(onclick="sortTable(1)" data-column="1")
+                .d-flex.justify-content-between.align-items-center
+                  span #{__('users.name')}
+                  i.bi.bi-arrow-down-up.sort-icon
+              th.sortable(onclick="sortTable(2)" data-column="2")
+                .d-flex.justify-content-between.align-items-center
+                  span #{__('users.email')}
+                  i.bi.bi-arrow-down-up.sort-icon
+              th.sortable(onclick="sortTable(3)" data-column="3")
+                .d-flex.justify-content-between.align-items-center
+                  span #{getLocale() === 'en' ? 'Role' : 'ロール'}
+                  i.bi.bi-arrow-down-up.sort-icon
+              th.sortable(onclick="sortTable(4)" data-column="4")
+                .d-flex.justify-content-between.align-items-center
+                  span #{getLocale() === 'en' ? 'Status' : 'ステータス'}
+                  i.bi.bi-arrow-down-up.sort-icon
               th #{__('users.actions')}
-          tbody#userList
-            if users && users.length > 0
-              each user in users
-                tr
-                  td
-                    code.small #{user.id}
-                  td
-                    .d-flex.align-items-center
-                      if user.avatarUrl
-                        img.rounded-circle.me-2(src=user.avatarUrl, width="32", height="32", alt=user.firstName)
-                      else
-                        .rounded-circle.bg-secondary.text-white.d-flex.align-items-center.justify-content-center.me-2(style="width: 32px; height: 32px;")
-                          | #{user.firstName.charAt(0)}#{user.lastName.charAt(0)}
-                      span #{user.firstName} #{user.lastName}
-                  td= user.email || (getLocale() === 'en' ? 'Not set' : '未設定')
-                  td
-                    if user.deleted
-                      span.badge.bg-danger #{getLocale() === 'en' ? 'Deleted' : '削除済み'}
-                    else
-                      span.badge.bg-success #{getLocale() === 'en' ? 'Active' : 'アクティブ'}
-                  td
-                    .btn-group.btn-group-sm
-                      a.btn.btn-outline-primary(href=`/users/${user.id}`, title=`ID: ${user.id}`)
-                        i.bi.bi-eye
-            else
-              tr
-                td.text-center.py-4(colspan="5") #{getLocale() === 'en' ? 'No users found' : 'ユーザーがありません'}
+            tr.filters
+              th
+                input.form-control.form-control-sm.column-filter(type="text", data-column="0", placeholder=getLocale() === 'en' ? 'Filter by ID...' : 'IDでフィルター...')
+              th
+                input.form-control.form-control-sm.column-filter(type="text", data-column="1", placeholder=getLocale() === 'en' ? 'Filter by name...' : '名前でフィルター...')
+              th
+                select.form-control.form-control-sm.column-filter(data-column="2")
+                  option(value="") #{getLocale() === 'en' ? 'All domains' : 'すべてのドメイン'}
+                  option(value="has-email") #{getLocale() === 'en' ? 'Has email' : 'メールあり'}
+                  option(value="no-email") #{getLocale() === 'en' ? 'No email' : 'メールなし'}
+              th
+                select.form-control.form-control-sm.column-filter(data-column="3")
+                  option(value="") #{getLocale() === 'en' ? 'All roles' : 'すべてのロール'}
+              th
+                select.form-control.form-control-sm.column-filter(data-column="4")
+                  option(value="active") #{getLocale() === 'en' ? 'Active only' : 'アクティブのみ'}
+                  option(value="deleted") #{getLocale() === 'en' ? 'Deleted only' : '削除済みのみ'}
+                  option(value="") #{getLocale() === 'en' ? 'Show all' : 'すべて表示'}
+              th
+          tbody#usersTableBody
+            tr.loading-row
+              td.text-center.py-5(colspan="6")
+                .spinner-border.text-primary(role="status")
+                p.mt-3.text-muted #{getLocale() === 'en' ? 'Loading users...' : 'ユーザーを読み込み中...'}
 
-  if error
-    .alert.alert-danger.mt-3= error
+      #loadingMoreSpinner.text-center.my-3.d-none
+        .spinner-border.text-primary(role="status")
+        p.mt-2.text-muted #{getLocale() === 'en' ? 'Loading more users...' : 'さらにユーザーを読み込み中...'}
 
-
+      #noResultsMessage.text-center.my-4.d-none
+        i.bi.bi-search.text-muted.fs-1.mb-3.d-block
+        p.text-muted #{getLocale() === 'en' ? 'No users found matching your search criteria.' : '検索条件に一致するユーザーが見つかりませんでした。'}
 
 block scripts
   script.
-    // Variables to store current filters
-    let currentSearchTerm = '';
-    let currentStatus = 'active'; // Default to active users only
-    let currentEmailDomain = 'all'; // Default to all domains
+    // データ管理用の変数
+    let allUsers = [];
+    let filteredUsers = [];
+    let nextPageToken = null;
+    let isLoading = false;
+    let hasMoreData = true;
+    let batchSize = 20; // 一度に表示するユーザーの数
+    let currentDisplayCount = 0;
+
+    // フィルター状態を保持する配列
+    const filterValues = [
+      '', // IDフィルター
+      '', // 名前フィルター
+      '', // メールフィルター
+      '', // ロールフィルター
+      'active' // ステータスフィルター (デフォルト: アクティブのみ)
+    ];
+
+    // 全体検索の値
+    let globalSearchValue = '';
+
     const currentLocale = document.documentElement.lang || 'en';
 
-    // Function to extract domain from email
-    function getDomainFromEmail(email) {
-      if (!email || email === (currentLocale === 'en' ? 'Not set' : '未設定')) {
-        return null;
-      }
-      const parts = email.split('@');
-      return parts.length === 2 ? parts[1].toLowerCase() : null;
-    }
+    // ページ読み込み時の処理
+    document.addEventListener('DOMContentLoaded', function() {
+      // スタイルの追加
+      const style = document.createElement('style');
+      style.textContent = `
+        .sortable {
+          cursor: pointer;
+        }
+        .sortable:hover {
+          background-color: rgba(0, 0, 0, 0.05);
+        }
+        .sort-icon {
+          opacity: 0.3;
+          transition: all 0.2s;
+        }
+        th[data-sort-dir] .sort-icon {
+          opacity: 1;
+        }
+        th[data-sort-dir="asc"] .sort-icon {
+          transform: rotate(180deg);
+        }
+        th[data-sort-dir="desc"] .sort-icon {
+          transform: rotate(0deg);
+        }
+        .user-row {
+          opacity: 0;
+          transform: translateY(10px);
+          transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .user-row.visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        #loadingMoreSpinner {
+          transition: opacity 0.3s ease;
+        }
+      `;
+      document.head.appendChild(style);
 
-    // Function to get unique domains from all emails
-    function getUniqueDomains() {
-      const rows = document.querySelectorAll('#userList tr');
-      const domains = new Set();
+      // 初期データの読み込み
+      loadUsers();
 
-      rows.forEach(row => {
-        const emailCell = row.querySelector('td:nth-child(3)');
-        if (emailCell) {
-          const email = emailCell.textContent.trim();
-          const domain = getDomainFromEmail(email);
-          if (domain) {
-            domains.add(domain);
+      // スクロールイベントの設定
+      window.addEventListener('scroll', handleScroll);
+
+      // 更新ボタンのイベント設定
+      document.getElementById('refreshBtn').addEventListener('click', function() {
+        resetAndReload();
+      });
+
+      // 検索ボックスのイベント設定
+      document.getElementById('searchInput').addEventListener('input', function(e) {
+        globalSearchValue = e.target.value.toLowerCase();
+        applyFilters();
+      });
+
+      // 列フィルターのイベント設定
+      document.querySelectorAll('.column-filter').forEach((filter, index) => {
+        filter.addEventListener('input', function(e) {
+          filterValues[index] = e.target.value.toLowerCase();
+          applyFilters();
+        });
+        filter.addEventListener('change', function(e) {
+          filterValues[index] = e.target.value.toLowerCase();
+          applyFilters();
+        });
+      });
+    });
+
+    // ユーザーデータを読み込む関数
+    async function loadUsers() {
+      if (isLoading || !hasMoreData) return;
+
+      isLoading = true;
+
+      try {
+        // ローディング表示
+        if (allUsers.length === 0) {
+          document.querySelector('.loading-row').classList.remove('d-none');
+          document.getElementById('usersCount').innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>' +
+            (currentLocale === 'en' ? 'Loading users...' : 'ユーザーを読み込み中...');
+        } else {
+          document.getElementById('loadingMoreSpinner').classList.remove('d-none');
+        }
+
+        // APIリクエスト
+        const response = await fetch('/api/contacts');
+        if (!response.ok) throw new Error('Failed to fetch users');
+
+        const result = await response.json();
+
+        // データの処理
+        if (result.data && result.data.length > 0) {
+          // デバッグ用: 最初のユーザーの構造を確認
+          console.log('Sample user data:', JSON.stringify(result.data[0], null, 2));
+
+          // 新しいデータを追加
+          allUsers = [...result.data];
+
+          // フィルタリングを適用
+          applyFilters();
+
+          // カウント表示の更新
+          updateUsersCount();
+
+          // 追加のデータを表示
+          displayMoreUsers();
+        } else {
+          hasMoreData = false;
+          if (allUsers.length === 0) {
+            showNoResultsMessage();
           }
         }
-      });
-
-      return Array.from(domains).sort();
+      } catch (error) {
+        console.error('Error loading users:', error);
+        showErrorMessage();
+      } finally {
+        // ローディング表示を非表示
+        document.querySelector('.loading-row').classList.add('d-none');
+        document.getElementById('loadingMoreSpinner').classList.add('d-none');
+        isLoading = false;
+      }
     }
 
-    // Function to populate email domain dropdown
-    function populateEmailDomainDropdown() {
-      const domains = getUniqueDomains();
-      const dropdown = document.getElementById('emailDomain');
+    // ユーザーカウントの表示を更新
+    function updateUsersCount() {
+      const countElement = document.getElementById('usersCount');
+      const totalCount = allUsers.length;
+      const filteredCount = filteredUsers.length;
 
-      // Keep the first three options (All domains, Has email, and No email)
-      const defaultOptions = dropdown.querySelectorAll('option');
-      const allDomainsOption = defaultOptions[0];
-      const hasEmailOption = defaultOptions[1];
-      const noEmailOption = defaultOptions[2];
-
-      // Clear dropdown
-      dropdown.innerHTML = '';
-
-      // Add default options back
-      dropdown.appendChild(allDomainsOption);
-      dropdown.appendChild(hasEmailOption);
-      dropdown.appendChild(noEmailOption);
-
-      // Add domain options
-      domains.forEach(domain => {
-        const option = document.createElement('option');
-        option.value = domain;
-        option.textContent = domain;
-        dropdown.appendChild(option);
-      });
-    }
-
-    // Function to filter the user list
-    function filterUserList() {
-      const rows = document.querySelectorAll('#userList tr');
-      const searchTerm = currentSearchTerm.toLowerCase();
-
-      rows.forEach(row => {
-        const id = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
-        const name = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-        const email = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-        const statusCell = row.querySelector('td:nth-child(4)');
-
-        // Check status based on current language
-        const activeText = currentLocale === 'en' ? 'Active' : 'アクティブ';
-        const deletedText = currentLocale === 'en' ? 'Deleted' : '削除済み';
-        const notSetText = currentLocale === 'en' ? 'Not set' : '未設定';
-
-        const isActive = statusCell.textContent.includes(activeText);
-        const isDeleted = statusCell.textContent.includes(deletedText);
-
-        // Check email domain
-        const domain = getDomainFromEmail(email);
-        const hasEmail = !email.includes(notSetText) && domain !== null;
-        const matchesEmailDomain =
-          (currentEmailDomain === 'all') ||
-          (currentEmailDomain === 'has-email' && hasEmail) ||
-          (currentEmailDomain === 'no-email' && (email.includes(notSetText) || !domain)) ||
-          (domain && domain === currentEmailDomain);
-
-        // Check if row matches all filters
-        const matchesSearch = id.includes(searchTerm) || name.includes(searchTerm) || email.includes(searchTerm);
-        const matchesStatus =
-          (currentStatus === 'all') ||
-          (currentStatus === 'active' && isActive) ||
-          (currentStatus === 'deleted' && isDeleted);
-
-        if (matchesSearch && matchesStatus && matchesEmailDomain) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
+      let countText = '';
+      if (globalSearchValue || filterValues.some(v => v !== '')) {
+        // フィルターが適用されている場合
+        countText = `${filteredCount} / ${totalCount} ${totalCount === 1 ? 'user' : 'users'}`;
+      } else {
+        // フィルターが適用されていない場合
+        countText = `${totalCount} ${totalCount === 1 ? 'user' : 'users'}`;
+        if (hasMoreData) {
+          countText += ' (loading more...)';
         }
+      }
+
+      countElement.innerHTML = countText;
+    }
+
+    // ユーザーの行を作成する関数
+    function createUserRow(user) {
+      const tr = document.createElement('tr');
+      tr.className = 'user-row';
+
+      // ID列
+      const tdId = document.createElement('td');
+      const codeId = document.createElement('code');
+      codeId.className = 'small';
+      codeId.textContent = user.id;
+      tdId.appendChild(codeId);
+      tr.appendChild(tdId);
+
+      // 名前列
+      const tdName = document.createElement('td');
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'd-flex align-items-center';
+
+      // アバター
+      if (user.avatarUrl && !user.avatarUrl.includes('deleted.png')) {
+        const img = document.createElement('img');
+        img.className = 'rounded-circle me-2';
+        img.src = user.avatarUrl;
+        img.width = 32;
+        img.height = 32;
+        img.alt = user.firstName || 'User';
+        nameDiv.appendChild(img);
+      } else {
+        const avatar = document.createElement('div');
+        avatar.className = 'rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2';
+        avatar.style.cssText = 'width: 32px; height: 32px;';
+        // 名前がない場合は User の頭文字を使用
+        const firstName = user.firstName || 'User';
+        const lastName = user.lastName || '';
+        avatar.textContent = `${firstName.charAt(0)}${lastName.charAt(0) || ''}`;
+        nameDiv.appendChild(avatar);
+      }
+
+      const nameSpan = document.createElement('span');
+      // 名前がない場合はIDを表示
+      const displayName = user.firstName && user.lastName ?
+        `${user.firstName} ${user.lastName}` :
+        (user.firstName || user.lastName || user.id);
+      nameSpan.textContent = displayName;
+      nameDiv.appendChild(nameSpan);
+      tdName.appendChild(nameDiv);
+      tr.appendChild(tdName);
+
+      // メール列
+      const tdEmail = document.createElement('td');
+      tdEmail.textContent = user.email || (currentLocale === 'en' ? 'Not set' : '未設定');
+      tr.appendChild(tdEmail);
+
+      // ロール列
+      const tdRole = document.createElement('td');
+      if (user.displayRole) {
+        const roleSpan = document.createElement('span');
+        roleSpan.className = 'badge ' + (user.roleInfo ? user.roleInfo.roleClass : 'bg-primary');
+        const roleText = currentLocale === 'en' ? user.displayRole :
+          (user.displayRole === 'Owner' ? 'オーナー' :
+           user.displayRole === 'Administrator' ? '管理者' :
+           user.displayRole === 'External user' ? '外部ユーザー' :
+           user.displayRole === 'Regular user' ? '正規ユーザー' :
+           user.displayRole === 'Collaborator' ? 'コラボレーター' : user.displayRole);
+        roleSpan.textContent = roleText;
+        tdRole.appendChild(roleSpan);
+      } else {
+        const roleSpan = document.createElement('span');
+        roleSpan.className = 'badge bg-primary';
+        roleSpan.textContent = currentLocale === 'en' ? 'Regular user' : '正規ユーザー';
+        tdRole.appendChild(roleSpan);
+      }
+      tr.appendChild(tdRole);
+
+      // ステータス列
+      const tdStatus = document.createElement('td');
+      const statusSpan = document.createElement('span');
+      if (user.deleted) {
+        statusSpan.className = 'badge bg-danger';
+        statusSpan.textContent = currentLocale === 'en' ? 'Deleted' : '削除済み';
+      } else {
+        statusSpan.className = 'badge bg-success';
+        statusSpan.textContent = currentLocale === 'en' ? 'Active' : 'アクティブ';
+      }
+      tdStatus.appendChild(statusSpan);
+      tr.appendChild(tdStatus);
+
+      // アクション列
+      const tdActions = document.createElement('td');
+      const btnGroup = document.createElement('div');
+      btnGroup.className = 'btn-group btn-group-sm';
+
+      const link = document.createElement('a');
+      link.className = 'btn btn-outline-primary';
+      link.href = `/users/${user.id}`;
+      link.title = `ID: ${user.id}`;
+
+      const icon = document.createElement('i');
+      icon.className = 'bi bi-eye';
+      link.appendChild(icon);
+
+      btnGroup.appendChild(link);
+      tdActions.appendChild(btnGroup);
+      tr.appendChild(tdActions);
+
+      return tr;
+    }
+
+    // 追加のユーザーを表示する関数
+    function displayMoreUsers() {
+      const tbody = document.getElementById('usersTableBody');
+      const fragment = document.createDocumentFragment();
+
+      // 表示するデータの範囲を決定
+      const startIndex = currentDisplayCount;
+      const endIndex = Math.min(startIndex + batchSize, filteredUsers.length);
+
+      // 新しい行を追加
+      for (let i = startIndex; i < endIndex; i++) {
+        const user = filteredUsers[i];
+        const row = createUserRow(user);
+        fragment.appendChild(row);
+      }
+
+      // DOMに追加
+      tbody.appendChild(fragment);
+
+      // アニメーション効果を適用
+      setTimeout(() => {
+        const newRows = tbody.querySelectorAll('.user-row:not(.visible)');
+        newRows.forEach((row, index) => {
+          setTimeout(() => {
+            row.classList.add('visible');
+          }, index * 30); // 少しずつ表示
+        });
+      }, 10);
+
+      // 表示カウントを更新
+      currentDisplayCount = endIndex;
+
+      // すべてのデータを表示し終わり、まだデータがある場合は次のデータを読み込む
+      if (currentDisplayCount >= filteredUsers.length && hasMoreData) {
+        loadUsers();
+      }
+    }
+
+    // スクロールハンドラ
+    function handleScroll() {
+      if (isLoading) return;
+
+      const scrollY = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+
+      // ページの下部に近づいたら追加データを表示
+      if (scrollY + windowHeight > documentHeight - 300) {
+        if (currentDisplayCount < filteredUsers.length) {
+          // まだ表示していないデータがある場合
+          displayMoreUsers();
+        } else if (hasMoreData) {
+          // 表示するデータがなく、まだAPIから取得できるデータがある場合
+          loadUsers();
+        }
+      }
+    }
+
+    // フィルタリングを適用する関数
+    function applyFilters() {
+      // グローバル検索とカラムフィルターを適用
+      filteredUsers = allUsers.filter(user => {
+        // グローバル検索
+        let matchesGlobal = true;
+        if (globalSearchValue) {
+          const firstName = user.firstName || '';
+          const lastName = user.lastName || '';
+          const fullName = `${firstName} ${lastName}`.toLowerCase();
+          const email = (user.email || '').toLowerCase();
+          const role = (user.displayRole || '').toLowerCase();
+          matchesGlobal =
+            user.id.toLowerCase().includes(globalSearchValue) ||
+            fullName.includes(globalSearchValue) ||
+            email.includes(globalSearchValue) ||
+            role.includes(globalSearchValue);
+        }
+
+        // カラムフィルター
+        let matchesColumns = true;
+
+        // IDフィルター
+        if (filterValues[0] && !user.id.toLowerCase().includes(filterValues[0])) {
+          matchesColumns = false;
+        }
+
+        // 名前フィルター
+        if (filterValues[1]) {
+          const firstName = user.firstName || '';
+          const lastName = user.lastName || '';
+          const fullName = `${firstName} ${lastName}`.toLowerCase();
+          if (!fullName.includes(filterValues[1])) {
+            matchesColumns = false;
+          }
+        }
+
+        // メールフィルター
+        if (filterValues[2]) {
+          const email = user.email || '';
+          if (filterValues[2] === 'has-email') {
+            matchesColumns = !!email;
+          } else if (filterValues[2] === 'no-email') {
+            matchesColumns = !email;
+          } else {
+            // ドメインフィルター
+            const domain = email.split('@')[1] || '';
+            matchesColumns = domain.toLowerCase().includes(filterValues[2]);
+          }
+        }
+
+        // ロールフィルター
+        if (filterValues[3] && user.displayRole) {
+          matchesColumns = user.displayRole.toLowerCase().includes(filterValues[3]);
+        }
+
+        // ステータスフィルター
+        if (filterValues[4]) {
+          if (filterValues[4] === 'active') {
+            matchesColumns = !user.deleted;
+          } else if (filterValues[4] === 'deleted') {
+            matchesColumns = user.deleted;
+          }
+          // 'all' の場合は何もしない（全て表示）
+        }
+
+        return matchesGlobal && matchesColumns;
       });
 
-      // Update the export button to include current filters
+      // 表示をリセット
+      resetDisplay();
+
+      // 結果がない場合のメッセージ表示
+      if (filteredUsers.length === 0) {
+        showNoResultsMessage();
+      } else {
+        hideNoResultsMessage();
+        // 新しいデータを表示
+        displayMoreUsers();
+      }
+
+      // カウント表示の更新
+      updateUsersCount();
+
+      // エクスポートボタンの更新
       updateExportButton();
     }
 
-    // Function to sort the user list
-    function sortUserList(sortBy) {
-      const tbody = document.getElementById('userList');
-      const rows = Array.from(tbody.querySelectorAll('tr'));
+    // 表示をリセットする関数
+    function resetDisplay() {
+      const tbody = document.getElementById('usersTableBody');
+      // ローディング行以外を削除
+      const loadingRow = document.querySelector('.loading-row');
+      tbody.innerHTML = '';
+      if (loadingRow) {
+        tbody.appendChild(loadingRow);
+        loadingRow.classList.add('d-none');
+      }
+      currentDisplayCount = 0;
+    }
 
-      rows.sort((a, b) => {
-        let aValue, bValue;
+    // データをリセットして再読み込みする関数
+    function resetAndReload() {
+      allUsers = [];
+      filteredUsers = [];
+      nextPageToken = null;
+      hasMoreData = true;
+      currentDisplayCount = 0;
 
-        switch(sortBy) {
-          case 'id':
-            aValue = a.querySelector('td:nth-child(1)').textContent;
-            bValue = b.querySelector('td:nth-child(1)').textContent;
-            return aValue.localeCompare(bValue);
-
-          case 'name':
-            aValue = a.querySelector('td:nth-child(2)').textContent;
-            bValue = b.querySelector('td:nth-child(2)').textContent;
-            return aValue.localeCompare(bValue);
-
-          case 'email':
-            aValue = a.querySelector('td:nth-child(3)').textContent;
-            bValue = b.querySelector('td:nth-child(3)').textContent;
-            return aValue.localeCompare(bValue);
-
-          default:
-            return 0;
+      // フィルターもリセット
+      globalSearchValue = '';
+      document.getElementById('searchInput').value = '';
+      filterValues.fill('');
+      filterValues[4] = 'active'; // ステータスはデフォルトをアクティブに
+      document.querySelectorAll('.column-filter').forEach((filter, index) => {
+        if (index === 4) {
+          filter.value = 'active';
+        } else {
+          filter.value = '';
         }
       });
 
-      // Rebuild the table
-      rows.forEach(row => tbody.appendChild(row));
+      // 表示をリセット
+      resetDisplay();
+      hideNoResultsMessage();
+
+      // データを再読み込み
+      loadUsers();
     }
 
-    // Function to update export button with current filters
+    // 結果がない場合のメッセージを表示
+    function showNoResultsMessage() {
+      document.getElementById('noResultsMessage').classList.remove('d-none');
+    }
+
+    // 結果がない場合のメッセージを非表示
+    function hideNoResultsMessage() {
+      document.getElementById('noResultsMessage').classList.add('d-none');
+    }
+
+    // エラーメッセージを表示
+    function showErrorMessage() {
+      const tbody = document.getElementById('usersTableBody');
+      const loadingRow = document.querySelector('.loading-row');
+      if (loadingRow) {
+        loadingRow.classList.add('d-none');
+      }
+
+      const errorRow = document.createElement('tr');
+      const errorCell = document.createElement('td');
+      errorCell.colSpan = 6;
+      errorCell.className = 'text-center py-4 text-danger';
+      errorCell.textContent = currentLocale === 'en' ? 'Error loading users. Please refresh.' : 'ユーザーの読み込みエラー。更新してください。';
+      errorRow.appendChild(errorCell);
+      tbody.appendChild(errorRow);
+    }
+
+    // エクスポートボタンを更新
     function updateExportButton() {
-      const exportBtn = document.querySelector('.btn-group a.btn-outline-primary');
+      const exportBtn = document.getElementById('exportBtn');
       if (!exportBtn) return;
 
-      // Count visible rows
-      const visibleRows = Array.from(document.querySelectorAll('#userList tr'))
-        .filter(row => row.style.display !== 'none');
-
-      // Update button text with count
-      const exportText = currentLocale === 'en' ? 'Export CSV' : 'CSVエクスポート';
-      const icon = document.createElement('i');
-      icon.className = 'bi bi-download me-1';
-
-      exportBtn.innerHTML = '';
-      exportBtn.appendChild(icon);
-      exportBtn.appendChild(document.createTextNode(`${exportText} (${visibleRows.length})`));
-
-      // Update href with filter parameters
+      // パラメータを構築
       const params = new URLSearchParams();
-      if (currentSearchTerm) params.append('search', currentSearchTerm);
-      if (currentStatus !== 'all') params.append('status', currentStatus);
-      if (currentEmailDomain !== 'all') params.append('domain', currentEmailDomain);
+      if (globalSearchValue) params.append('search', globalSearchValue);
+      if (filterValues[0]) params.append('id', filterValues[0]);
+      if (filterValues[1]) params.append('name', filterValues[1]);
+      if (filterValues[2]) params.append('email', filterValues[2]);
+      if (filterValues[3]) params.append('role', filterValues[3]);
+      if (filterValues[4]) params.append('status', filterValues[4]);
 
       exportBtn.href = `/users/export?${params.toString()}`;
     }
 
-    // Email domain filter functionality
-    document.getElementById('emailDomain').addEventListener('change', function(e) {
-      currentEmailDomain = e.target.value;
-      filterUserList();
-    });
+    // ソート機能
+    function sortTable(columnIndex) {
+      const table = document.getElementById('usersTable');
+      const thead = table.querySelector('thead');
+      const th = thead.querySelectorAll('th')[columnIndex];
 
-    // User search functionality
-    document.getElementById('userSearch').addEventListener('input', function(e) {
-      currentSearchTerm = e.target.value;
-      filterUserList();
-    });
+      // 現在のソート方向を取得
+      const currentDir = th.getAttribute('data-sort-dir');
+      const newDir = currentDir === 'asc' ? 'desc' : 'asc';
 
-    // Status filter functionality
-    document.getElementById('userStatus').addEventListener('change', function(e) {
-      currentStatus = e.target.value;
-      filterUserList();
-    });
+      // 全てのヘッダーからソート情報をクリア
+      thead.querySelectorAll('th').forEach(header => {
+        header.removeAttribute('data-sort-dir');
+      });
 
-    // User sort functionality
-    document.getElementById('userSort').addEventListener('change', function(e) {
-      sortUserList(e.target.value);
-    });
+      // 新しいソート方向を設定
+      th.setAttribute('data-sort-dir', newDir);
 
-    // Initialize on page load
-    document.addEventListener('DOMContentLoaded', function() {
-      // Populate email domain dropdown
-      populateEmailDomainDropdown();
+      // データをソート
+      filteredUsers.sort((a, b) => {
+        let aVal, bVal;
 
-      // Default to showing active users only
-      filterUserList();
+        switch(columnIndex) {
+          case 0: // ID
+            aVal = a.id;
+            bVal = b.id;
+            break;
+          case 1: // Name
+            aVal = `${a.firstName || ''} ${a.lastName || ''}`;
+            bVal = `${b.firstName || ''} ${b.lastName || ''}`;
+            break;
+          case 2: // Email
+            aVal = a.email || '';
+            bVal = b.email || '';
+            break;
+          case 3: // Role
+            aVal = a.displayRole || '';
+            bVal = b.displayRole || '';
+            break;
+          case 4: // Status
+            aVal = a.deleted ? '1' : '0';
+            bVal = b.deleted ? '1' : '0';
+            break;
+          default:
+            return 0;
+        }
 
-      // Default to sorting by name
-      sortUserList('name');
+        const result = aVal.localeCompare(bVal);
+        return newDir === 'asc' ? result : -result;
+      });
 
-      // Update export button
-      updateExportButton();
-    });
-
-
+      // 表示を更新
+      resetDisplay();
+      displayMoreUsers();
+    }

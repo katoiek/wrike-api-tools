@@ -1,5 +1,6 @@
 import express from 'express';
 import { wrikeApi } from '../services/wrike-api';
+import { getUserPrimaryRole, type UserProfile } from '../utils/user-roles';
 
 const router = express.Router();
 
@@ -173,6 +174,11 @@ router.get('/users', requireAuth, async (req, res) => {
         if (profile.title) {
           user.role = profile.title;
         }
+
+        // プロファイル情報からロールを判定
+        const roleInfo = getUserPrimaryRole(user.profiles as UserProfile[]);
+        user.roleInfo = roleInfo;
+        user.displayRole = roleInfo.displayRole;
       }
       return user;
     });
@@ -200,8 +206,10 @@ router.get('/users/export', requireAuth, async (req, res) => {
     const search = req.query.search as string || '';
     const status = req.query.status as string || 'active';
     const domain = req.query.domain as string || 'all';
+    const name = req.query.name as string || 'all';
+    const role = req.query.role as string || 'all';
 
-    console.log(`Exporting users with filters - search: "${search}", status: ${status}, domain: ${domain}`);
+    console.log(`Exporting users with filters - search: "${search}", status: ${status}, domain: ${domain}, name: ${name}, role: ${role}`);
 
     // Get all users
     const result = await wrikeApi.getContacts();
@@ -217,6 +225,11 @@ router.get('/users/export', requireAuth, async (req, res) => {
         if (profile.title) {
           user.role = profile.title;
         }
+
+        // プロファイル情報からロールを判定
+        const roleInfo = getUserPrimaryRole(user.profiles as UserProfile[]);
+        user.roleInfo = roleInfo;
+        user.displayRole = roleInfo.displayRole;
       }
       return user;
     });
@@ -234,6 +247,14 @@ router.get('/users/export', requireAuth, async (req, res) => {
         status === 'all' ||
         (status === 'active' && !user.deleted) ||
         (status === 'deleted' && user.deleted);
+
+      // Name filter (free text)
+      const matchesName = name === 'all' ||
+        `${user.firstName} ${user.lastName}`.toLowerCase().includes(name.toLowerCase());
+
+      // Role filter
+      const matchesRole = role === 'all' ||
+        (user.displayRole && user.displayRole.toLowerCase().includes(role.toLowerCase()));
 
       // Domain filter
       let matchesDomain = true;
@@ -253,14 +274,14 @@ router.get('/users/export', requireAuth, async (req, res) => {
         }
       }
 
-      return matchesSearch && matchesStatus && matchesDomain;
+      return matchesSearch && matchesStatus && matchesName && matchesRole && matchesDomain;
     });
 
     console.log(`Filtered ${processedUsers.length} users to ${filteredUsers.length} for export`);
 
     // Generate CSV content
     let csv = '\ufeff'; // BOM for UTF-8
-    csv += 'ID,FirstName,LastName,Email,Status\n';
+    csv += 'ID,FirstName,LastName,Email,Role,Status\n';
 
     filteredUsers.forEach(user => {
       const status = user.deleted ?
@@ -268,6 +289,7 @@ router.get('/users/export', requireAuth, async (req, res) => {
         (req.getLocale() === 'en' ? 'Active' : 'アクティブ');
 
       const email = user.email || (req.getLocale() === 'en' ? 'Not set' : '未設定');
+      const role = user.displayRole || (req.getLocale() === 'en' ? 'Regular user' : '正規ユーザー');
 
       // Escape fields that might contain commas
       const escapeCsv = (field: string | undefined): string => {
@@ -277,7 +299,7 @@ router.get('/users/export', requireAuth, async (req, res) => {
         return field || '';
       };
 
-      csv += `${escapeCsv(user.id)},${escapeCsv(user.firstName)},${escapeCsv(user.lastName)},${escapeCsv(email)},${escapeCsv(status)}\n`;
+      csv += `${escapeCsv(user.id)},${escapeCsv(user.firstName)},${escapeCsv(user.lastName)},${escapeCsv(email)},${escapeCsv(role)},${escapeCsv(status)}\n`;
     });
 
     // Set headers for CSV download
@@ -352,6 +374,11 @@ router.get('/users/:id', requireAuth, async (req, res) => {
       if (profile.title) {
         userDetail.role = profile.title;
       }
+
+      // プロファイル情報からロールを判定
+      const roleInfo = getUserPrimaryRole(userDetail.profiles as UserProfile[]);
+      userDetail.roleInfo = roleInfo;
+      userDetail.displayRole = roleInfo.displayRole;
     }
 
     console.log(`Found user: ${userDetail.firstName} ${userDetail.lastName}, Email: ${userDetail.email || '未設定'}, Role: ${userDetail.role || '未設定'}`);
