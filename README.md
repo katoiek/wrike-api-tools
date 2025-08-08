@@ -100,10 +100,7 @@ This application has been updated to use environment variables and in-memory sto
    - Environment variables are the primary configuration method
    - No database files to secure or backup
 
-4. **Migration from SQLite**
-   - See `MIGRATION_GUIDE.md` for detailed migration instructions
-   - Legacy SQLite functionality has been replaced with environment variables
-   - Old database files can be safely removed after migration
+
 
 ### Recent Updates
 
@@ -219,10 +216,7 @@ npm run dev
    - 環境変数が主要な設定方法です
    - セキュリティ保護やバックアップが必要なデータベースファイルはありません
 
-4. **SQLiteからの移行**
-   - 詳細な移行手順については `MIGRATION_GUIDE.md` を参照してください
-   - 従来のSQLite機能は環境変数に置き換えられました
-   - 移行後、古いデータベースファイルは安全に削除できます
+
 
 ### 最近の更新
 
